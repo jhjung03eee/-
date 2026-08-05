@@ -1,0 +1,38 @@
+{
+  "name": "기아 모빌리티솔루션본부",
+  "headcount": 120,
+  "annual_revenue_krw": 45000000000,
+  "regions": ["서울", "경기", "인천", "수도권", "전국"],
+  "certifications": [
+    "소프트웨어사업자 신고",
+    "ISO 9001",
+    "ISO 27001",
+    "자동차관리사업 등록",
+    "여객자동차운송사업 면허",
+    "직접생산확인증명서",
+    "기업신용평가 AA-"
+  ],
+  "industry_codes": ["6201", "7112", "4930", "2930"],
+  "tech_stack": [
+    "자율주행",
+    "셔틀",
+    "모빌리티",
+    "관제",
+    "영상분석",
+    "인공지능",
+    "데이터 분석",
+    "클라우드",
+    "python",
+    "react"
+  ],
+  "past_projects": [
+    "자율주행 셔틀 실증사업",
+    "수요응답형 교통 플랫폼",
+    "차량 관제 시스템 구축"
+  ],
+  "target_margin": 0.15,
+  "min_project_budget_krw": 300000000,
+  "max_concurrent_projects": 8,
+  "current_active_projects": 4,
+  "min_preparation_days": 10
+}

@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #0b0f17;
+  --color-panel: #121826;
+  --color-edge: #1f2937;
+  --color-go: #22c55e;
+  --color-review: #eab308;
+  --color-nogo: #ef4444;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: #e5e7eb;
+  font-family:
+    "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, -apple-system,
+    sans-serif;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(59 130 246 / 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgb(59 130 246 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(59 130 246 / 0);
+  }
+}
+
+.pulse-ring {
+  animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
