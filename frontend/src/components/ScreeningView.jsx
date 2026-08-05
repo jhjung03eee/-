@@ -192,7 +192,10 @@ function Detail({ item }) {
 
 function PrintReport({ report }) {
   const sorted = [...report.items].sort(
-    (a, b) => TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] || b.score - a.score
+    (a, b) =>
+      TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] ||
+      (a.days_left ?? Infinity) - (b.days_left ?? Infinity) ||
+      b.score - a.score
   );
   const reasonFor = (item) => {
     if (item.screen.blocked) {
@@ -337,7 +340,6 @@ function DetailPanel({ item, status, onStatusChange }) {
 export default function ScreeningView({ corpus, report, busy, onRun }) {
   const [selectedId, setSelectedId] = useState(null);
   const [tierFilter, setTierFilter] = useState("전체");
-  const [reviewOnly, setReviewOnly] = useState(false);
   const [sortBy, setSortBy] = useState("priority");
   const [actionStatus, setActionStatus] = useState({});
 
@@ -347,18 +349,26 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
     if (!report) return [];
     return report.items
       .filter((item) => tierFilter === "전체" || item.recommendation === tierFilter)
-      .filter((item) => !reviewOnly || item.human_review_required)
       .sort((a, b) => {
         if (sortBy === "score") return b.score - a.score;
         if (sortBy === "deadline") return (a.days_left ?? Infinity) - (b.days_left ?? Infinity);
-        return TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] || b.score - a.score;
+        return (
+          TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] ||
+          (a.days_left ?? Infinity) - (b.days_left ?? Infinity) ||
+          b.score - a.score
+        );
       });
-  }, [report, reviewOnly, sortBy, tierFilter]);
+  }, [report, sortBy, tierFilter]);
   const priorityItems = useMemo(() => {
     if (!report) return [];
     return [...report.items]
       .filter((item) => !item.screen.blocked && item.recommendation !== "패스")
-      .sort((a, b) => TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] || b.score - a.score)
+      .sort(
+        (a, b) =>
+          TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] ||
+          (a.days_left ?? Infinity) - (b.days_left ?? Infinity) ||
+          b.score - a.score
+      )
       .slice(0, 3);
   }, [report]);
 
@@ -429,7 +439,6 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
                   <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-sky-500" aria-label="정렬 기준">
                     <option value="priority">우선순위순</option><option value="score">점수순</option><option value="deadline">마감순</option>
                   </select>
-                  <label className="flex items-center gap-1.5 text-xs text-slate-400"><input type="checkbox" checked={reviewOnly} onChange={(event) => setReviewOnly(event.target.checked)} className="accent-sky-500" /> 담당자 검토</label>
                 </div>
               </div>
               <div className="divide-y divide-slate-800">
