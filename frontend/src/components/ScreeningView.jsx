@@ -190,6 +190,49 @@ function Detail({ item }) {
   );
 }
 
+function PrintReport({ report }) {
+  const sorted = [...report.items].sort(
+    (a, b) => TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] || b.score - a.score
+  );
+  const reasonFor = (item) => {
+    if (item.screen.blocked) {
+      return item.screen.block_reasons?.join(" · ") || "사전 필터 제외";
+    }
+    const text = item.committee?.executive_summary || item.error || "-";
+    return text.length > 90 ? `${text.slice(0, 90)}…` : text;
+  };
+  return (
+    <table className="hidden w-full border-collapse text-left print:table">
+      <thead>
+        <tr className="border-b border-slate-400 text-slate-600">
+          <th className="py-1 pr-1 font-semibold">등급</th>
+          <th className="py-1 pr-1 font-semibold">공고명</th>
+          <th className="py-1 pr-1 font-semibold">발주처</th>
+          <th className="py-1 pr-1 text-right font-semibold">예산</th>
+          <th className="py-1 pr-1 text-right font-semibold">마감</th>
+          <th className="py-1 pr-1 font-semibold">요약 / 사유</th>
+          <th className="py-1 text-right font-semibold">점수</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((item) => (
+          <tr key={item.bid_id} className="border-b border-slate-200 align-top">
+            <td className="py-1 pr-1 font-semibold">
+              {tierStyle(item.recommendation).icon} {item.recommendation}
+            </td>
+            <td className="py-1 pr-1">{item.title}</td>
+            <td className="py-1 pr-1">{item.agency || "-"}</td>
+            <td className="py-1 pr-1 text-right font-mono">{krw(item.budget_krw)}</td>
+            <td className="py-1 pr-1 text-right font-mono">{deadlineLabel(item)}</td>
+            <td className="py-1 pr-1">{reasonFor(item)}</td>
+            <td className="py-1 text-right font-mono">{score10(item.score)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function ActionSelect({ value, onChange }) {
   return (
     <select
@@ -375,7 +418,7 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
             </div>
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.78fr)]">
+          <section className="grid gap-4 print:hidden xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.78fr)]">
             <div className="border border-slate-800 bg-slate-900/55">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-3">
                 <div><h2 className="text-base font-semibold text-slate-100">전체 공고 목록</h2><p className="mt-0.5 text-xs text-slate-500">{visibleItems.length}건 표시 · 선택 시 오른쪽에서 상세 확인</p></div>
@@ -395,6 +438,8 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
             </div>
             <DetailPanel item={selectedItem} status={selectedItem ? actionStatus[selectedItem.bid_id] || "검토 전" : "검토 전"} onStatusChange={updateStatus} />
           </section>
+
+          <PrintReport report={report} />
         </div>
       )}
     </div>
