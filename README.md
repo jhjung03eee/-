@@ -141,14 +141,13 @@ projects/raw/
 기본은 **오프라인 휴리스틱 모드**로 동작한다. API 키 없이도 파싱 · RAG · 4개 에이전트 ·
 가드레일 · 가중 투표 · 보고서까지 전체 워크플로우가 그대로 실행된다.
 
-`OPENAI_API_KEY`를 설정하면 동일한 워크플로우가 OpenAI 호출로 전환되고,
+`BIDCOM_GLM_API_KEY`를 설정하면 동일한 워크플로우가 GLM 호출로 전환되고,
 호출이 실패하면 자동으로 휴리스틱 결과로 폴백하면서 `llm_fallback` 플래그를 남긴다.
 즉 키 유무와 무관하게 시스템은 항상 검증 가능한 결과를 낸다.
 
 ```bash
-OPENAI_API_KEY=...                # 비우면 오프라인 모드
-OPENAI_MODEL=gpt-5-nano
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+BIDCOM_GLM_API_KEY=...            # 비우면 오프라인 모드
+BIDCOM_GLM_MODEL=gpt5.5-nano
 BIDCOM_CONFIDENCE_THRESHOLD=0.65
 ```
 
@@ -192,10 +191,10 @@ cd backend && .venv/bin/python -m pytest
   3.12를 고정한다 (`numpy>=2` 가 3.10+ 필요).
 
 **API 키 설정**: Vercel 대시보드 → Settings → Environment Variables 에서
-`OPENAI_API_KEY` 를 추가하고 재배포하면 OpenAI 모드로 전환된다.
+`BIDCOM_GLM_API_KEY` 를 추가하고 재배포하면 GLM 모드로 전환된다.
 키를 넣기 전까지는 오프라인 휴리스틱 모드로 정상 동작한다.
 (`.env` 의 키 이름과 실제로 앱이 읽는 이름이 다르므로 반드시 `BIDCOM_` 접두사를
-붙여야 한다 — `API_KEY` 가 아니라 `OPENAI_API_KEY`.)
+붙여야 한다 — `API_KEY` 가 아니라 `BIDCOM_GLM_API_KEY`.)
 
 프로젝트 환경변수에 `VERCEL_FORCE_NO_BUILD_CACHE=1` 도 설정되어 있다. 빌드 캐시를
 재사용하다가 예전에 깨진 캐시가 다시 물리는 문제가 있었던 이력 때문이며, 매 배포마다
@@ -239,7 +238,7 @@ backend/app/
     heuristics.py      결정론적 역할 추론 (오프라인 모드 · 폴백)
     chair.py           가중 투표 · 거부권 · 경영진 보고서
   rag/                 파싱 · 청킹 · 임베딩 · 벡터 검색 · 리트리버
-  llm/                 OpenAI 클라이언트 · 오프라인 프로바이더
+  llm/                 GLM 클라이언트 · 오프라인 프로바이더
 frontend/src/          React 대시보드 (스크리닝 리포트 · 에이전트 카드 · 투표)
 data/demo_corpus/      데모 코퍼스 8건 (projects/raw 와 동일 레이아웃)
 api/index.py           Vercel 서버리스 진입점 (`/api/*` + frontend/dist 서빙)
