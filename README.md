@@ -141,13 +141,14 @@ projects/raw/
 기본은 **오프라인 휴리스틱 모드**로 동작한다. API 키 없이도 파싱 · RAG · 4개 에이전트 ·
 가드레일 · 가중 투표 · 보고서까지 전체 워크플로우가 그대로 실행된다.
 
-`BIDCOM_GLM_API_KEY`를 설정하면 동일한 워크플로우가 GLM 호출로 전환되고,
+`OPENAI_API_KEY`를 설정하면 동일한 워크플로우가 OpenAI 호출로 전환되고,
 호출이 실패하면 자동으로 휴리스틱 결과로 폴백하면서 `llm_fallback` 플래그를 남긴다.
 즉 키 유무와 무관하게 시스템은 항상 검증 가능한 결과를 낸다.
 
 ```bash
-BIDCOM_GLM_API_KEY=...            # 비우면 오프라인 모드
-BIDCOM_GLM_MODEL=glm-5.2
+OPENAI_API_KEY=...                # 비우면 오프라인 모드
+OPENAI_MODEL=gpt-5-nano
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 BIDCOM_CONFIDENCE_THRESHOLD=0.65
 ```
 
@@ -181,13 +182,24 @@ cd backend && .venv/bin/python -m pytest
 
 리포지토리를 Vercel 프로젝트로 연결하면 `vercel.json` 설정으로 바로 배포된다.
 
-- 프론트엔드: `frontend/` 를 빌드해 정적 호스팅 (`frontend/dist`)
-- 백엔드: `api/index.py` 가 FastAPI 앱을 서버리스 함수로 노출하고 `/api/*` 요청이 라우팅됨
-- 루트 `requirements.txt` 가 파이썬 의존성을 정의
+- 빌드: `frontend/` 를 Vite로 빌드 (`frontend/dist`)
+- 백엔드 겸 서빙: `api/index.py` 가 FastAPI 앱을 서버리스 함수로 노출한다.
+  `/api/*` 는 백엔드가 처리하고, 그 외 모든 경로는 같은 함수 안에서
+  `frontend/dist` 를 직접 서빙한다 — Vercel이 FastAPI를 감지하면 정적 호스팅보다
+  이 함수 라우팅을 우선하기 때문에, 프론트엔드를 별도 rewrite로 분리하지 않고
+  앱이 직접 들고 있는 구조다 (`api/index.py` 참고).
+- 루트 `requirements.txt` 가 파이썬 의존성을 정의하고, `.python-version` 으로
+  3.12를 고정한다 (`numpy>=2` 가 3.10+ 필요).
 
 **API 키 설정**: Vercel 대시보드 → Settings → Environment Variables 에서
-`BIDCOM_GLM_API_KEY` 를 추가하고 재배포하면 GLM 모드로 전환된다.
+`OPENAI_API_KEY` 를 추가하고 재배포하면 OpenAI 모드로 전환된다.
 키를 넣기 전까지는 오프라인 휴리스틱 모드로 정상 동작한다.
+(`.env` 의 키 이름과 실제로 앱이 읽는 이름이 다르므로 반드시 `BIDCOM_` 접두사를
+붙여야 한다 — `API_KEY` 가 아니라 `OPENAI_API_KEY`.)
+
+프로젝트 환경변수에 `VERCEL_FORCE_NO_BUILD_CACHE=1` 도 설정되어 있다. 빌드 캐시를
+재사용하다가 예전에 깨진 캐시가 다시 물리는 문제가 있었던 이력 때문이며, 매 배포마다
+의존성을 새로 설치하는 대신 이런 종류의 캐시 불일치를 피한다.
 
 > 서버리스 환경 제약: 요청 바디 4.5MB 제한(업로드는 4MB로 제한), 함수 실행 60초 제한.
 > SSE 스트리밍이 플랫폼에서 버퍼링되면 프론트엔드가 자동으로 단발성 `/api/review`
@@ -227,10 +239,10 @@ backend/app/
     heuristics.py      결정론적 역할 추론 (오프라인 모드 · 폴백)
     chair.py           가중 투표 · 거부권 · 경영진 보고서
   rag/                 파싱 · 청킹 · 임베딩 · 벡터 검색 · 리트리버
-  llm/                 GLM 클라이언트 · 오프라인 프로바이더
+  llm/                 OpenAI 클라이언트 · 오프라인 프로바이더
 frontend/src/          React 대시보드 (스크리닝 리포트 · 에이전트 카드 · 투표)
 data/demo_corpus/      데모 코퍼스 8건 (projects/raw 와 동일 레이아웃)
-api/index.py           Vercel 서버리스 진입점
+api/index.py           Vercel 서버리스 진입점 (`/api/*` + frontend/dist 서빙)
 ```
 
 ### 데모 코퍼스 시나리오

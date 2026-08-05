@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { decisionStyle, krw, percent } from "../lib/format";
+import { decisionStyle, krw, percent, score10 } from "../lib/format";
 import useFillWidth from "../lib/useFillWidth";
 import Panel from "./Panel";
 
@@ -228,7 +228,7 @@ function Row({ item, expanded, onToggle, index }) {
           )}
         </td>
         <td className="px-3 py-2.5 text-right font-mono text-sm text-slate-400">
-          {item.score.toFixed(2)}
+          {score10(item.score)}
         </td>
         <td className="max-w-md px-3 py-2.5">
           <p className="truncate text-[14px] text-slate-400">{item.reason}</p>
@@ -328,7 +328,7 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
                   <th className="px-3 pb-2 text-left">공고</th>
                   <th className="px-3 pb-2 text-right">예산</th>
                   <th className="px-3 pb-2 text-right">마감</th>
-                  <th className="px-3 pb-2 text-right">점수</th>
+                  <th className="px-3 pb-2 text-right">스코어</th>
                   <th className="px-3 pb-2 text-left">판단 근거</th>
                   <th className="px-3 pb-2" />
                   <th className="px-2 pb-2 print:hidden" />

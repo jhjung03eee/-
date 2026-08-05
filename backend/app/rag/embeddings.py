@@ -55,30 +55,30 @@ class HashingEmbeddings:
         return features
 
 
-class GLMEmbeddings:
+class OpenAIEmbeddings:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._fallback = HashingEmbeddings()
-        self.name = f"glm:{settings.glm_embedding_model}"
+        self.name = f"openai:{settings.openai_embedding_model}"
 
     async def embed(self, texts: list[str]) -> np.ndarray:
         try:
             async with httpx.AsyncClient(timeout=self._settings.llm_timeout_seconds) as client:
                 response = await client.post(
-                    f"{self._settings.glm_base_url}/embeddings",
-                    json={"model": self._settings.glm_embedding_model, "input": texts},
-                    headers={"Authorization": f"Bearer {self._settings.glm_api_key}"},
+                    f"{self._settings.openai_base_url.rstrip('/')}/embeddings",
+                    json={"model": self._settings.openai_embedding_model, "input": texts},
+                    headers={"Authorization": f"Bearer {self._settings.openai_api_key}"},
                 )
                 response.raise_for_status()
                 vectors = [item["embedding"] for item in response.json()["data"]]
             return _normalize(np.array(vectors, dtype=np.float32))
         except Exception:
-            logger.exception("GLM embedding call failed; using offline embeddings")
+            logger.exception("OpenAI embedding call failed; using offline embeddings")
             return await self._fallback.embed(texts)
 
 
 def get_embeddings(settings: Settings | None = None) -> Embeddings:
     settings = settings or get_settings()
     if settings.live_llm:
-        return GLMEmbeddings(settings)
+        return OpenAIEmbeddings(settings)
     return HashingEmbeddings()

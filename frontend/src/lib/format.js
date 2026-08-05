@@ -40,4 +40,7 @@ export const krw = (amount) => {
 
 export const percent = (value) => `${Math.round((value ?? 0) * 100)}%`;
 
+// Internal scores are stored 0–1; display them as a 10-point "스코어" instead.
+export const score10 = (value) => `${((value ?? 0) * 10).toFixed(1)}/10`;
+
 export const stars = (count) => "★".repeat(count) + "☆".repeat(Math.max(0, 5 - count));

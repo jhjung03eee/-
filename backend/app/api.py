@@ -25,8 +25,8 @@ async def health() -> dict:
     settings = get_settings()
     return {
         "status": "ok",
-        "llm_provider": "glm" if settings.live_llm else "heuristic-offline",
-        "model": settings.glm_model if settings.live_llm else None,
+        "llm_provider": "openai" if settings.live_llm else "heuristic-offline",
+        "model": settings.openai_model if settings.live_llm else None,
     }
 
 

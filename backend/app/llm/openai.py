@@ -8,16 +8,16 @@ from app.llm.base import StructuredFallback, parse_json_object
 logger = logging.getLogger(__name__)
 
 
-class GLMClient:
-    """GLM 5.2 chat completions over the OpenAI-compatible BigModel endpoint."""
+class OpenAIClient:
+    """OpenAI Chat Completions client with deterministic fallback."""
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self.name = f"glm:{settings.glm_model}"
+        self.name = f"openai:{settings.openai_model}"
 
     async def structured(self, system: str, user: str, fallback: StructuredFallback) -> dict:
         payload = {
-            "model": self._settings.glm_model,
+            "model": self._settings.openai_model,
             "temperature": self._settings.llm_temperature,
             "messages": [
                 {"role": "system", "content": system},
@@ -25,12 +25,12 @@ class GLMClient:
             ],
             "response_format": {"type": "json_object"},
         }
-        headers = {"Authorization": f"Bearer {self._settings.glm_api_key}"}
+        headers = {"Authorization": f"Bearer {self._settings.openai_api_key}"}
 
         try:
             async with httpx.AsyncClient(timeout=self._settings.llm_timeout_seconds) as client:
                 response = await client.post(
-                    f"{self._settings.glm_base_url}/chat/completions",
+                    f"{self._settings.openai_base_url.rstrip('/')}/chat/completions",
                     json=payload,
                     headers=headers,
                 )
@@ -38,7 +38,7 @@ class GLMClient:
                 content = response.json()["choices"][0]["message"]["content"]
             return parse_json_object(content)
         except Exception:
-            logger.exception("GLM call failed; using heuristic fallback")
+            logger.exception("OpenAI call failed; using heuristic fallback")
             result = fallback()
             result["degraded"] = True
             return result

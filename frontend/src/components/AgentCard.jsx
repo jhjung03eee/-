@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { decisionStyle, percent } from "../lib/format";
+import { decisionStyle, percent, score10 } from "../lib/format";
 import useFillWidth from "../lib/useFillWidth";
 import CommitteeAvatar from "./CommitteeAvatar";
 
@@ -36,8 +36,8 @@ function Criteria({ scores }) {
         <div key={name} className="flex items-center gap-2">
           <span className="w-28 shrink-0 truncate text-[13px] text-slate-400">{name}</span>
           <CriteriaBar score={score} />
-          <span className="w-9 text-right font-mono text-[13px] text-slate-400">
-            {score.toFixed(2)}
+          <span className="w-14 text-right font-mono text-[13px] text-slate-400">
+            {score10(score)}
           </span>
         </div>
       ))}

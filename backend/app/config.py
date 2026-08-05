@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -9,12 +10,20 @@ DATA_DIR = REPO_ROOT / "data"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="BIDCOM_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="BIDCOM_", env_file=REPO_ROOT / ".env", extra="ignore"
+    )
 
-    glm_api_key: str = ""
-    glm_base_url: str = "https://open.bigmodel.cn/api/paas/v4"
-    glm_model: str = "glm-5.2"
-    glm_embedding_model: str = "embedding-3"
+    openai_api_key: str = Field(
+        default="", validation_alias=AliasChoices("OPENAI_API_KEY", "API_KEY")
+    )
+    openai_base_url: str = Field(
+        default="https://api.openai.com/v1", validation_alias="OPENAI_BASE_URL"
+    )
+    openai_model: str = Field(default="gpt-5-nano", validation_alias="OPENAI_MODEL")
+    openai_embedding_model: str = Field(
+        default="text-embedding-3-small", validation_alias="OPENAI_EMBEDDING_MODEL"
+    )
     llm_timeout_seconds: float = 90.0
     llm_temperature: float = 0.2
 
@@ -32,7 +41,7 @@ class Settings(BaseSettings):
 
     @property
     def live_llm(self) -> bool:
-        return bool(self.glm_api_key)
+        return bool(self.openai_api_key)
 
     @property
     def corpus_path(self) -> Path:

@@ -1,6 +1,6 @@
 """Deterministic role reasoning.
 
-Runs as the offline provider and as the fallback when a live GLM call fails, so the
+Runs as the offline provider and as the fallback when a live OpenAI call fails, so the
 committee always produces an auditable result instead of an empty one.
 """
 

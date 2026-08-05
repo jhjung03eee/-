@@ -1,4 +1,4 @@
-import { decisionStyle, percent } from "../lib/format";
+import { decisionStyle, percent, score10 } from "../lib/format";
 import useFillWidth from "../lib/useFillWidth";
 import CommitteeAvatar from "./CommitteeAvatar";
 import Panel from "./Panel";
@@ -25,7 +25,7 @@ export default function CommitteeVoting({ committee }) {
       subtitle="가중치 × 신뢰도로 표의 영향력을 조정한다"
       actions={
         <span className="font-mono text-sm text-slate-400">
-          score {committee.committee_score.toFixed(3)}
+          스코어 {score10(committee.committee_score)}
         </span>
       }
     >

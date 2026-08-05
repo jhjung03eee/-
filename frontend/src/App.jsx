@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReviewView from "./components/ReviewView";
 import ScreeningView from "./components/ScreeningView";
-import { getConfig, getCorpus, getSamples, runScreening, streamReview } from "./lib/api";
+import { getConfig, getCorpus, getHealth, getSamples, runScreening, streamReview } from "./lib/api";
 
 const STAGE_TO_STEP = {
   parsing: "parsing",
@@ -23,13 +23,14 @@ const initialRun = {
 };
 
 const TABS = [
-  { key: "screen", label: "배치 스크리닝" },
-  { key: "review", label: "단건 심의" },
+  { key: "screen", label: "배치 스크리닝", icon: "📋" },
+  { key: "review", label: "단건 심의", icon: "🔎" },
 ];
 
 export default function App() {
   const [tab, setTab] = useState("screen");
   const [config, setConfig] = useState(null);
+  const [health, setHealth] = useState(null);
   const [samples, setSamples] = useState([]);
   const [corpus, setCorpus] = useState(null);
   const [report, setReport] = useState(null);
@@ -39,9 +40,10 @@ export default function App() {
   const abortRef = useRef(null);
 
   useEffect(() => {
-    Promise.all([getConfig(), getSamples(), getCorpus()])
-      .then(([configData, sampleData, corpusData]) => {
+    Promise.all([getConfig(), getHealth(), getSamples(), getCorpus()])
+      .then(([configData, healthData, sampleData, corpusData]) => {
         setConfig(configData);
+        setHealth(healthData);
         setSamples(sampleData.samples);
         setCorpus(corpusData);
       })
@@ -115,39 +117,56 @@ export default function App() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 p-4 lg:p-6">
-      <div className="brand-gradient-bar print:hidden" />
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-50">
-            🏛️ AI Go/No-Go 심의위원회
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            공공 입찰공고 참여 여부를 영업·기술·재무·법무 4개 관점으로 심의하는 멀티
-            에이전트 의사결정 시스템
-          </p>
-        </div>
-        {config && (
-          <div className="text-right text-sm text-slate-400">
-            <p>
-              심의 대상 기업 <span className="font-medium text-slate-200">{config.company.name}</span>
+    <div className="mx-auto max-w-7xl space-y-5 p-4 lg:p-6">
+      <header className="relative overflow-hidden border-b border-slate-800/90 pb-5">
+        <div className="brand-gradient-bar absolute inset-x-0 top-0 print:hidden" />
+        <div className="flex flex-wrap items-end justify-between gap-5 pt-5">
+          <div className="min-w-0">
+            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-sky-400 uppercase">
+              Public Bidding Decision Desk
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">
+              🏛️ AI Go/No-Go 심의위원회
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+              공공 입찰공고 참여 여부를 영업·기술·재무·법무 4개 관점에서 종합 심의합니다.
             </p>
           </div>
-        )}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {config && (
+              <span className="rounded-md border border-slate-700 bg-slate-900/70 px-3 py-1.5 text-slate-400">
+                심의 대상 <strong className="ml-1 font-medium text-slate-100">{config.company.name}</strong>
+              </span>
+            )}
+            {health && (
+              <span
+                className={`rounded-md border px-3 py-1.5 font-mono text-xs ${
+                  health.llm_provider === "heuristic-offline"
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                }`}
+                title="현재 백엔드 AI 실행 모드"
+              >
+                {health.llm_provider === "heuristic-offline" ? "● OFFLINE" : `● ${health.model}`}
+              </span>
+            )}
+          </div>
+        </div>
       </header>
 
-      <nav className="flex gap-1 border-b border-slate-800 print:hidden">
+      <nav className="flex w-fit gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-1 print:hidden" aria-label="심의 모드">
         {TABS.map((entry) => (
           <button
             key={entry.key}
             onClick={() => setTab(entry.key)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm transition-colors ${
+            aria-current={tab === entry.key ? "page" : undefined}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
               tab === entry.key
-                ? "border-sky-500 font-semibold text-slate-100"
-                : "border-transparent text-slate-500 hover:text-slate-300"
+                ? "bg-sky-500/15 text-sky-200 shadow-sm"
+                : "text-slate-500 hover:bg-slate-800/70 hover:text-slate-300"
             }`}
           >
-            {entry.label}
+            <span aria-hidden className="mr-1.5">{entry.icon}</span>{entry.label}
           </button>
         ))}
       </nav>

@@ -10,6 +10,7 @@ async function json(path, options) {
 }
 
 export const getConfig = () => json("/api/config");
+export const getHealth = () => json("/api/health");
 export const getSamples = () => json("/api/samples");
 export const getCorpus = () => json("/api/corpus");
 export const runScreening = () => json("/api/screen", { method: "POST" });
