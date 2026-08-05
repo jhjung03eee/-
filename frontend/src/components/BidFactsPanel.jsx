@@ -4,8 +4,8 @@ import Panel from "./Panel";
 function Field({ label, value }) {
   return (
     <div>
-      <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className="mt-0.5 text-sm text-slate-200">{value || "미확인"}</dd>
+      <dt className="text-sm text-slate-400">{label}</dt>
+      <dd className="mt-0.5 text-base text-slate-200">{value || "미확인"}</dd>
     </div>
   );
 }

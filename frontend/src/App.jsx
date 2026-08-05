@@ -118,30 +118,24 @@ export default function App() {
     <div className="mx-auto max-w-7xl space-y-4 p-4 lg:p-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-50">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-50">
             AI Go/No-Go 심의위원회
           </h1>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-sm text-slate-400">
             공공 입찰공고 참여 여부를 영업·기술·재무·법무 4개 관점으로 심의하는 멀티
             에이전트 의사결정 시스템
           </p>
         </div>
         {config && (
-          <div className="text-right text-[11px] text-slate-500">
+          <div className="text-right text-sm text-slate-400">
             <p>
-              심의 대상 기업 <span className="text-slate-300">{config.company.name}</span>
-            </p>
-            <p>
-              LLM{" "}
-              <span className={config.live_llm ? "text-emerald-400" : "text-amber-400"}>
-                {config.live_llm ? "GLM 연동" : "오프라인 휴리스틱 (API 키 미설정)"}
-              </span>
+              심의 대상 기업 <span className="font-medium text-slate-200">{config.company.name}</span>
             </p>
           </div>
         )}
       </header>
 
-      <nav className="flex gap-1 border-b border-slate-800">
+      <nav className="flex gap-1 border-b border-slate-800 print:hidden">
         {TABS.map((entry) => (
           <button
             key={entry.key}
@@ -158,7 +152,7 @@ export default function App() {
       </nav>
 
       {error && (
-        <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-300">
+        <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-300 print:hidden">
           {error}
         </div>
       )}
@@ -183,7 +177,7 @@ export default function App() {
         />
       )}
 
-      <footer className="pt-2 pb-6 text-center text-[11px] text-slate-600">
+      <footer className="pt-2 pb-6 text-center text-xs text-slate-600 print:hidden">
         Project 08 · Multi-Agent Decision Support System for Public Bidding
       </footer>
     </div>

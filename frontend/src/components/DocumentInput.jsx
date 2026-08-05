@@ -43,7 +43,7 @@ export default function DocumentInput({ samples, running, onRun, onError }) {
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <div className="space-y-3">
           <div>
-            <label className="mb-1.5 block text-xs text-slate-400">샘플 공고</label>
+            <label className="mb-1.5 block text-sm text-slate-400">샘플 공고</label>
             <select
               value={sampleId}
               onChange={(e) => pickSample(e.target.value)}
@@ -59,7 +59,7 @@ export default function DocumentInput({ samples, running, onRun, onError }) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs text-slate-400">파일 업로드</label>
+            <label className="mb-1.5 block text-sm text-slate-400">파일 업로드</label>
             <input
               ref={fileRef}
               type="file"
@@ -80,7 +80,7 @@ export default function DocumentInput({ samples, running, onRun, onError }) {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs text-slate-400">
+          <label className="mb-1.5 block text-sm text-slate-400">
             공고문 원문 {sampleId && "(샘플 선택 시 서버에서 로드)"}
           </label>
           <textarea

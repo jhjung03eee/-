@@ -36,9 +36,23 @@ export const percent = (value) => `${Math.round((value ?? 0) * 100)}%`;
 
 export const stars = (count) => "★".repeat(count) + "☆".repeat(Math.max(0, 5 - count));
 
-export const ROLE_ICON = {
-  sales: "◈",
-  technical: "⚙",
-  finance: "₩",
-  legal: "§",
+// Initial + color avatar badges per committee role (no external image assets needed).
+export const ROLE_INITIAL = {
+  sales: "영",
+  technical: "기",
+  finance: "재",
+  legal: "법",
 };
+
+export const ROLE_AVATAR = {
+  sales: "bg-sky-500/20 text-sky-300 ring-sky-500/40",
+  technical: "bg-violet-500/20 text-violet-300 ring-violet-500/40",
+  finance: "bg-emerald-500/20 text-emerald-300 ring-emerald-500/40",
+  legal: "bg-amber-500/20 text-amber-300 ring-amber-500/40",
+};
+
+// Kept for backwards compatibility with any lingering symbol usage.
+export const ROLE_ICON = ROLE_INITIAL;
+
+export const CHAIR_INITIAL = "위";
+export const CHAIR_AVATAR = "bg-fuchsia-500/20 text-fuchsia-300 ring-fuchsia-500/40";

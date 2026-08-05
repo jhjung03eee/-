@@ -9,7 +9,7 @@ const STAGES = [
 
 export default function WorkflowTimeline({ reached, running }) {
   return (
-    <ol className="flex flex-wrap items-center gap-x-2 gap-y-2 text-xs">
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm">
       {STAGES.map((stage, index) => {
         const done = reached.includes(stage.key);
         const active = running && !done && reached.includes(STAGES[index - 1]?.key);

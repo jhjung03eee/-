@@ -9,16 +9,29 @@ import WorkflowTimeline from "./WorkflowTimeline";
 export default function ReviewView({ config, samples, run, busy, onRun, onError }) {
   return (
     <div className="space-y-4">
-      <DocumentInput samples={samples} running={busy} onRun={onRun} onError={onError} />
+      <div className="print:hidden">
+        <DocumentInput samples={samples} running={busy} onRun={onRun} onError={onError} />
+      </div>
 
       {(busy || run.steps.length > 0) && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3">
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 print:hidden">
           <WorkflowTimeline reached={run.steps} running={busy} />
           {run.log.length > 0 && (
-            <p className="mt-2 font-mono text-[11px] text-slate-500">
+            <p className="mt-2 font-mono text-[13px] text-slate-500">
               › {run.log[run.log.length - 1]}
             </p>
           )}
+        </div>
+      )}
+
+      {run.committee && (
+        <div className="flex justify-end print:hidden">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500"
+          >
+            📄 PDF 다운로드
+          </button>
         </div>
       )}
 
@@ -39,7 +52,9 @@ export default function ReviewView({ config, samples, run, busy, onRun, onError 
 
       <CommitteeVoting committee={run.committee} />
       <ExecutiveReport committee={run.committee} />
-      <MetricsBar metrics={run.metrics} />
+      <div className="print:hidden">
+        <MetricsBar metrics={run.metrics} />
+      </div>
     </div>
   );
 }

@@ -32,11 +32,11 @@ function Summary({ report }) {
           key={tile.label}
           className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2"
         >
-          <p className="text-[10px] tracking-wide text-slate-500 uppercase">{tile.label}</p>
+          <p className="text-[13px] tracking-wide text-slate-500 uppercase">{tile.label}</p>
           <p className={`font-mono text-lg font-bold ${tile.tone || "text-slate-200"}`}>
             {tile.value}
           </p>
-          {tile.hint && <p className="text-[10px] text-slate-600">{tile.hint}</p>}
+          {tile.hint && <p className="text-[13px] text-slate-600">{tile.hint}</p>}
         </div>
       ))}
     </div>
@@ -47,11 +47,11 @@ function Detail({ item }) {
   if (item.screen.blocked) {
     return (
       <div className="space-y-1 bg-slate-950/60 px-4 py-3">
-        <p className="text-xs text-slate-400">
+        <p className="text-sm text-slate-400">
           사전 필터에서 제외되어 위원회 심의를 실행하지 않았습니다.
         </p>
         {item.screen.block_reasons.map((reason, i) => (
-          <p key={i} className="text-xs text-rose-300">
+          <p key={i} className="text-sm text-rose-300">
             · {reason}
           </p>
         ))}
@@ -61,7 +61,7 @@ function Detail({ item }) {
 
   if (!item.committee) {
     return (
-      <div className="bg-slate-950/60 px-4 py-3 text-xs text-slate-400">
+      <div className="bg-slate-950/60 px-4 py-3 text-sm text-slate-400">
         {item.error || "심의 결과가 없습니다."}
       </div>
     );
@@ -75,7 +75,7 @@ function Detail({ item }) {
           return (
             <span
               key={vote.role}
-              className={`rounded-md border px-2 py-1 text-[11px] ${style.border} ${style.bg}`}
+              className={`rounded-md border px-2 py-1 text-[14px] ${style.border} ${style.bg}`}
             >
               <span className="text-slate-400">{vote.display_name}</span>{" "}
               <span className={`font-bold ${style.text}`}>{vote.decision}</span>{" "}
@@ -85,7 +85,7 @@ function Detail({ item }) {
         })}
       </div>
 
-      <p className="text-xs leading-relaxed text-slate-300">
+      <p className="text-sm leading-relaxed text-slate-300">
         {item.committee.executive_summary}
       </p>
 
@@ -93,7 +93,7 @@ function Detail({ item }) {
         {item.committee.key_strengths?.length > 0 && (
           <ul className="space-y-0.5">
             {item.committee.key_strengths.slice(0, 3).map((text, i) => (
-              <li key={i} className="text-[11px] text-emerald-300/90">
+              <li key={i} className="text-[14px] text-emerald-300/90">
                 + {text}
               </li>
             ))}
@@ -102,7 +102,7 @@ function Detail({ item }) {
         {item.committee.key_risks?.length > 0 && (
           <ul className="space-y-0.5">
             {item.committee.key_risks.slice(0, 3).map((text, i) => (
-              <li key={i} className="text-[11px] text-rose-300/90">
+              <li key={i} className="text-[14px] text-rose-300/90">
                 ! {text}
               </li>
             ))}
@@ -111,7 +111,7 @@ function Detail({ item }) {
       </div>
 
       {item.screen.warnings?.length > 0 && (
-        <p className="text-[11px] text-amber-300">
+        <p className="text-[14px] text-amber-300">
           {item.screen.warnings.join(" · ")}
         </p>
       )}
@@ -129,26 +129,26 @@ function Row({ item, expanded, onToggle }) {
       >
         <td className="px-3 py-2.5">
           <span
-            className={`rounded px-2 py-0.5 text-[11px] font-bold ${style.bg} ${style.text}`}
+            className={`rounded px-2 py-0.5 text-[14px] font-bold ${style.bg} ${style.text}`}
           >
             {item.recommendation}
           </span>
         </td>
         <td className="px-3 py-2.5">
-          <p className="truncate text-xs font-medium text-slate-200">{item.title}</p>
-          <p className="truncate text-[11px] text-slate-500">
+          <p className="truncate text-sm font-medium text-slate-200">{item.title}</p>
+          <p className="truncate text-[14px] text-slate-500">
             {item.bid_id} · {item.agency || "발주처 미확인"}
           </p>
         </td>
-        <td className="px-3 py-2.5 text-right font-mono text-xs text-slate-300">
+        <td className="px-3 py-2.5 text-right font-mono text-sm text-slate-300">
           {krw(item.budget_krw)}
         </td>
         <td className="px-3 py-2.5 text-right">
           {item.days_left === null ? (
-            <span className="text-[11px] text-slate-600">미확인</span>
+            <span className="text-[14px] text-slate-600">미확인</span>
           ) : (
             <span
-              className={`font-mono text-xs ${
+              className={`font-mono text-sm ${
                 item.days_left < 0
                   ? "text-slate-600"
                   : item.urgent
@@ -161,20 +161,20 @@ function Row({ item, expanded, onToggle }) {
             </span>
           )}
         </td>
-        <td className="px-3 py-2.5 text-right font-mono text-xs text-slate-400">
+        <td className="px-3 py-2.5 text-right font-mono text-sm text-slate-400">
           {item.score.toFixed(2)}
         </td>
         <td className="max-w-md px-3 py-2.5">
-          <p className="truncate text-[11px] text-slate-400">{item.reason}</p>
+          <p className="truncate text-[14px] text-slate-400">{item.reason}</p>
         </td>
         <td className="px-3 py-2.5 text-center">
           {item.human_review_required && (
-            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300">
+            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[13px] text-amber-300">
               검토요
             </span>
           )}
         </td>
-        <td className="px-2 py-2.5 text-slate-600">{expanded ? "−" : "+"}</td>
+        <td className="px-2 py-2.5 text-slate-600 print:hidden">{expanded ? "−" : "+"}</td>
       </tr>
       {expanded && (
         <tr>
@@ -192,60 +192,72 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
 
   return (
     <div className="space-y-4">
-      <Panel
-        title="배치 스크리닝"
-        subtitle={
-          corpus?.available
-            ? `${corpus.count}건 공고 · ${corpus.path}`
-            : "공고 코퍼스를 찾을 수 없습니다"
-        }
-        actions={
-          <button
-            onClick={onRun}
-            disabled={busy || !corpus?.available}
-            className="rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
-          >
-            {busy ? "스크리닝 중…" : "일괄 스크리닝 실행"}
-          </button>
-        }
-      >
-        {!corpus?.available && (
-          <p className="text-xs text-slate-400">
-            <code className="text-slate-300">projects/raw</code> 아래에{" "}
-            <code className="text-slate-300">bids_md/</code>,{" "}
-            <code className="text-slate-300">bid_meta/</code> 를 배치하거나{" "}
-            <code className="text-slate-300">BIDCOM_CORPUS_DIR</code> 환경변수로 경로를
-            지정하세요.
-          </p>
-        )}
-        {corpus?.available && !report && !busy && (
-          <p className="text-xs text-slate-400">
-            사전 필터(자격미달 · 예산미달 · 마감경과)를 먼저 적용하고, 통과한 공고에 대해서만
-            4개 위원 심의를 실행합니다.
-          </p>
-        )}
-        {busy && (
-          <p className="text-xs text-sky-400">
-            공고를 파싱하고 위원회 심의를 실행하는 중입니다…
-          </p>
-        )}
-        {report && <Summary report={report} />}
-      </Panel>
+      <div className="print:hidden">
+        <Panel
+          title="배치 스크리닝"
+          subtitle={
+            corpus?.available
+              ? `${corpus.count}건 공고 · ${corpus.path}`
+              : "공고 코퍼스를 찾을 수 없습니다"
+          }
+          actions={
+            <button
+              onClick={onRun}
+              disabled={busy || !corpus?.available}
+              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
+            >
+              {busy ? "스크리닝 중…" : "일괄 스크리닝 실행"}
+            </button>
+          }
+        >
+          {!corpus?.available && (
+            <p className="text-sm text-slate-400">
+              <code className="text-slate-300">projects/raw</code> 아래에{" "}
+              <code className="text-slate-300">bids_md/</code>,{" "}
+              <code className="text-slate-300">bid_meta/</code> 를 배치하거나{" "}
+              <code className="text-slate-300">BIDCOM_CORPUS_DIR</code> 환경변수로 경로를
+              지정하세요.
+            </p>
+          )}
+          {corpus?.available && !report && !busy && (
+            <p className="text-sm text-slate-400">
+              사전 필터(자격미달 · 예산미달 · 마감경과)를 먼저 적용하고, 통과한 공고에 대해서만
+              4개 위원 심의를 실행합니다.
+            </p>
+          )}
+          {busy && (
+            <p className="text-sm text-sky-400">
+              공고를 파싱하고 위원회 심의를 실행하는 중입니다…
+            </p>
+          )}
+        </Panel>
+      </div>
 
       {report && (
         <Panel
           title="스크리닝 리포트"
           subtitle="적극추천 → 검토 → 패스 순, 동일 등급 내에서는 마감 임박 순"
           actions={
-            <span className="text-[11px] text-slate-500">
-              {report.company} · {report.generated_at}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-500">
+                {report.company} · {report.generated_at}
+              </span>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-500 print:hidden"
+              >
+                📄 PDF 다운로드
+              </button>
+            </div>
           }
         >
+          <div className="mb-4">
+            <Summary report={report} />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead>
-                <tr className="text-[10px] tracking-wide text-slate-500 uppercase">
+                <tr className="text-sm tracking-wide text-slate-500 uppercase">
                   <th className="px-3 pb-2 text-left">등급</th>
                   <th className="px-3 pb-2 text-left">공고</th>
                   <th className="px-3 pb-2 text-right">예산</th>
@@ -253,7 +265,7 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
                   <th className="px-3 pb-2 text-right">점수</th>
                   <th className="px-3 pb-2 text-left">판단 근거</th>
                   <th className="px-3 pb-2" />
-                  <th className="px-2 pb-2" />
+                  <th className="px-2 pb-2 print:hidden" />
                 </tr>
               </thead>
               <tbody>

@@ -9,6 +9,11 @@
   --color-nogo: #ef4444;
 }
 
+html {
+  /* Bumps every Tailwind rem-based size (text, spacing) up ~12% for readability. */
+  font-size: 18px;
+}
+
 html,
 body,
 #root {
@@ -21,6 +26,62 @@ body {
   font-family:
     "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, -apple-system,
     sans-serif;
+}
+
+/* Printable "PDF" output: browsers render this via the print dialog's
+   Save as PDF destination. We flip the dark theme to a light, high-contrast
+   report layout instead of trying to print dark backgrounds. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html {
+    font-size: 13px;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  [class*="bg-slate-9"],
+  [class*="bg-slate-8"],
+  [class*="bg-slate-950"] {
+    background: #ffffff !important;
+  }
+
+  [class*="border-slate-8"],
+  [class*="border-slate-7"] {
+    border-color: #d1d5db !important;
+  }
+
+  [class*="text-slate-1"],
+  [class*="text-slate-2"],
+  [class*="text-slate-3"] {
+    color: #111827 !important;
+  }
+
+  [class*="text-slate-4"],
+  [class*="text-slate-5"],
+  [class*="text-slate-6"] {
+    color: #4b5563 !important;
+  }
+
+  .pulse-ring {
+    animation: none !important;
+    box-shadow: none !important;
+  }
+
+  article,
+  section {
+    break-inside: avoid;
+  }
 }
 
 @keyframes pulse-ring {

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { ROLE_ICON, decisionStyle, percent } from "../lib/format";
+import { ROLE_AVATAR, ROLE_INITIAL, decisionStyle, percent } from "../lib/format";
 
 function ConfidenceBar({ value, tone }) {
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
       <div
         className={`h-full rounded-full ${tone} transition-[width] duration-700`}
         style={{ width: `${Math.round((value ?? 0) * 100)}%` }}
@@ -19,14 +19,14 @@ function Criteria({ scores }) {
     <div className="space-y-1.5">
       {entries.map(([name, score]) => (
         <div key={name} className="flex items-center gap-2">
-          <span className="w-28 shrink-0 truncate text-[11px] text-slate-500">{name}</span>
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-slate-800">
+          <span className="w-28 shrink-0 truncate text-[13px] text-slate-400">{name}</span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
             <div
               className="h-full rounded-full bg-slate-500"
               style={{ width: `${Math.round(score * 100)}%` }}
             />
           </div>
-          <span className="w-8 text-right font-mono text-[11px] text-slate-500">
+          <span className="w-9 text-right font-mono text-[13px] text-slate-400">
             {score.toFixed(2)}
           </span>
         </div>
@@ -38,6 +38,7 @@ function Criteria({ scores }) {
 export default function AgentCard({ profile, opinion, status }) {
   const [showEvidence, setShowEvidence] = useState(false);
   const style = opinion ? decisionStyle(opinion.decision) : null;
+  const avatar = ROLE_AVATAR[profile.role] || "bg-slate-700/30 text-slate-300 ring-slate-600";
 
   return (
     <article
@@ -45,27 +46,33 @@ export default function AgentCard({ profile, opinion, status }) {
         opinion ? style.border : "border-slate-800"
       } ${status === "running" ? "pulse-ring" : ""}`}
     >
-      <header className="flex items-start justify-between gap-2 border-b border-slate-800 px-4 py-3">
-        <div className="min-w-0">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-100">
-            <span className="text-slate-500">{ROLE_ICON[profile.role]}</span>
-            {profile.display_name}
-            {profile.veto && (
-              <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-medium text-rose-300">
-                VETO
-              </span>
-            )}
-          </h3>
-          <p className="mt-0.5 truncate text-[11px] text-slate-500">{profile.perspective}</p>
+      <header className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-bold ring-2 ${avatar}`}
+          >
+            {ROLE_INITIAL[profile.role] || "위"}
+          </span>
+          <div className="min-w-0">
+            <h3 className="flex items-center gap-2 text-base font-semibold text-slate-100">
+              {profile.display_name}
+              {profile.veto && (
+                <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-xs font-medium text-rose-300">
+                  VETO
+                </span>
+              )}
+            </h3>
+            <p className="mt-0.5 truncate text-[13px] text-slate-400">{profile.perspective}</p>
+          </div>
         </div>
         {opinion ? (
           <span
-            className={`shrink-0 rounded-md px-2 py-1 text-xs font-bold ${style.bg} ${style.text}`}
+            className={`shrink-0 rounded-md px-2.5 py-1 text-sm font-bold ${style.bg} ${style.text}`}
           >
             {opinion.decision}
           </span>
         ) : (
-          <span className="shrink-0 text-[11px] text-slate-500">
+          <span className="shrink-0 text-[13px] text-slate-500">
             {status === "running" ? "분석 중…" : "대기"}
           </span>
         )}
@@ -83,8 +90,8 @@ export default function AgentCard({ profile, opinion, status }) {
         {opinion && (
           <>
             <div>
-              <div className="mb-1 flex items-baseline justify-between text-[11px]">
-                <span className="text-slate-500">Confidence</span>
+              <div className="mb-1 flex items-baseline justify-between text-[13px]">
+                <span className="text-slate-400">Confidence</span>
                 <span className={`font-mono font-semibold ${style.text}`}>
                   {percent(opinion.confidence)}
                 </span>
@@ -92,14 +99,14 @@ export default function AgentCard({ profile, opinion, status }) {
               <ConfidenceBar value={opinion.confidence} tone={style.dot} />
             </div>
 
-            <p className="text-xs leading-relaxed text-slate-300">{opinion.summary}</p>
+            <p className="text-sm leading-relaxed text-slate-200">{opinion.summary}</p>
 
             <Criteria scores={opinion.criteria_scores} />
 
             {opinion.strengths?.length > 0 && (
               <ul className="space-y-1">
                 {opinion.strengths.map((item, i) => (
-                  <li key={i} className="flex gap-1.5 text-[11px] text-emerald-300/90">
+                  <li key={i} className="flex gap-1.5 text-[13px] text-emerald-300/90">
                     <span>+</span>
                     <span>{item}</span>
                   </li>
@@ -110,7 +117,7 @@ export default function AgentCard({ profile, opinion, status }) {
             {opinion.risks?.length > 0 && (
               <ul className="space-y-1">
                 {opinion.risks.map((item, i) => (
-                  <li key={i} className="flex gap-1.5 text-[11px] text-rose-300/90">
+                  <li key={i} className="flex gap-1.5 text-[13px] text-rose-300/90">
                     <span>!</span>
                     <span>{item}</span>
                   </li>
@@ -123,7 +130,7 @@ export default function AgentCard({ profile, opinion, status }) {
                 {opinion.guardrail_flags.map((flag, i) => (
                   <span
                     key={i}
-                    className="rounded bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-300"
+                    className="rounded bg-amber-500/10 px-1.5 py-0.5 font-mono text-xs text-amber-300"
                   >
                     {flag}
                   </span>
@@ -135,10 +142,10 @@ export default function AgentCard({ profile, opinion, status }) {
       </div>
 
       {opinion?.citations?.length > 0 && (
-        <footer className="border-t border-slate-800 px-4 py-2.5">
+        <footer className="border-t border-slate-800 px-4 py-2.5 print:hidden">
           <button
             onClick={() => setShowEvidence((prev) => !prev)}
-            className="flex w-full items-center justify-between text-[11px] text-slate-400 hover:text-slate-200"
+            className="flex w-full items-center justify-between text-[13px] text-slate-400 hover:text-slate-200"
           >
             <span>근거 {opinion.citations.length}건</span>
             <span>{showEvidence ? "−" : "+"}</span>
@@ -148,12 +155,12 @@ export default function AgentCard({ profile, opinion, status }) {
               {opinion.citations.map((citation, i) => (
                 <li key={i} className="rounded-md border border-slate-800 bg-slate-950 p-2">
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="rounded bg-sky-500/10 px-1.5 font-mono text-[10px] text-sky-300">
+                    <span className="rounded bg-sky-500/10 px-1.5 font-mono text-xs text-sky-300">
                       {citation.chunk_id}
                     </span>
-                    <span className="truncate text-[10px] text-slate-500">{citation.section}</span>
+                    <span className="truncate text-xs text-slate-500">{citation.section}</span>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-slate-400">"{citation.quote}"</p>
+                  <p className="text-[13px] leading-relaxed text-slate-400">"{citation.quote}"</p>
                 </li>
               ))}
             </ul>

@@ -3,9 +3,9 @@ import { percent } from "../lib/format";
 function Metric({ label, value, hint }) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2">
-      <p className="text-[10px] tracking-wide text-slate-500 uppercase">{label}</p>
-      <p className="font-mono text-sm font-semibold text-slate-200">{value}</p>
-      {hint && <p className="text-[10px] text-slate-600">{hint}</p>}
+      <p className="text-xs tracking-wide text-slate-500 uppercase">{label}</p>
+      <p className="font-mono text-base font-semibold text-slate-200">{value}</p>
+      {hint && <p className="text-xs text-slate-600">{hint}</p>}
     </div>
   );
 }
