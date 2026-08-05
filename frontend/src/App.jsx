@@ -116,10 +116,11 @@ export default function App() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 p-4 lg:p-6">
+      <div className="brand-gradient-bar print:hidden" />
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-50">
-            AI Go/No-Go 심의위원회
+            🏛️ AI Go/No-Go 심의위원회
           </h1>
           <p className="mt-1 text-sm text-slate-400">
             공공 입찰공고 참여 여부를 영업·기술·재무·법무 4개 관점으로 심의하는 멀티

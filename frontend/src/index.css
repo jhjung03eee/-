@@ -92,8 +92,12 @@ body {
     box-shadow: none !important;
   }
 
-  article,
-  section {
+  /* Only the small atomic cards should refuse to split across a page break
+     — the containing <section> (Panel) can legitimately span multiple pages
+     when it holds a long table, and forcing the whole thing to avoid a
+     break just pushes it entirely onto the next page, wasting the rest of
+     the current one. */
+  article {
     break-inside: avoid;
   }
 
@@ -194,4 +198,45 @@ body {
 
 .pulse-ring {
   animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.brand-gradient-bar {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #38bdf8, #a78bfa, #34d399, #fbbf24, #f472b6);
+  background-size: 200% 100%;
+  animation: brand-gradient-shift 6s ease-in-out infinite;
+}
+
+@keyframes brand-gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-gradient-bar,
+  .fade-in-up,
+  .pulse-ring {
+    animation: none !important;
+  }
 }

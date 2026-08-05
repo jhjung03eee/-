@@ -36,13 +36,16 @@ export default function ExecutiveReport({ committee }) {
       subtitle="위원장 최종 판정 및 경영진 보고"
     >
       <div
-        className={`mb-4 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border p-4 ${style.border} ${style.bg}`}
+        className={`mb-4 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border bg-gradient-to-br to-transparent p-4 ${style.border} ${style.glow}`}
       >
-        <div>
-          <p className="text-sm text-slate-400">최종 판정</p>
-          <p className={`text-4xl font-black tracking-tight ${style.text}`}>
-            {committee.decision}
-          </p>
+        <div className="flex items-center gap-3">
+          <span className="text-5xl leading-none drop-shadow">{style.icon}</span>
+          <div>
+            <p className="text-sm text-slate-400">최종 판정</p>
+            <p className={`text-4xl font-black tracking-tight ${style.text}`}>
+              {committee.decision}
+            </p>
+          </div>
         </div>
         <div>
           <p className="text-sm text-slate-400">위원회 신뢰도</p>

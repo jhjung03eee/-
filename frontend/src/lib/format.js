@@ -5,6 +5,8 @@ export const DECISION_STYLE = {
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/40",
     dot: "bg-emerald-400",
+    icon: "✅",
+    glow: "from-emerald-500/20 via-emerald-500/5",
   },
   REVIEW: {
     label: "REVIEW",
@@ -12,6 +14,8 @@ export const DECISION_STYLE = {
     bg: "bg-amber-500/10",
     border: "border-amber-500/40",
     dot: "bg-amber-400",
+    icon: "⚠️",
+    glow: "from-amber-500/20 via-amber-500/5",
   },
   "NO-GO": {
     label: "NO-GO",
@@ -19,6 +23,8 @@ export const DECISION_STYLE = {
     bg: "bg-rose-500/10",
     border: "border-rose-500/40",
     dot: "bg-rose-400",
+    icon: "⛔",
+    glow: "from-rose-500/20 via-rose-500/5",
   },
 };
 

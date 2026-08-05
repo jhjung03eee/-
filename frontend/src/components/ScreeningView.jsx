@@ -1,45 +1,109 @@
 import { useState } from "react";
 import { decisionStyle, krw, percent } from "../lib/format";
+import useFillWidth from "../lib/useFillWidth";
 import Panel from "./Panel";
 
 const TIER = {
-  적극추천: { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/40" },
-  검토: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/40" },
-  패스: { text: "text-slate-500", bg: "bg-slate-700/20", border: "border-slate-700" },
+  적극추천: {
+    text: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/40",
+    accent: "border-l-emerald-500",
+    bar: "bg-emerald-500",
+    icon: "🚀",
+  },
+  검토: {
+    text: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/40",
+    accent: "border-l-amber-500",
+    bar: "bg-amber-500",
+    icon: "👀",
+  },
+  패스: {
+    text: "text-slate-500",
+    bg: "bg-slate-700/20",
+    border: "border-slate-700",
+    accent: "border-l-slate-700",
+    bar: "bg-slate-600",
+    icon: "🚫",
+  },
 };
 
 const tierStyle = (tier) => TIER[tier] || TIER["검토"];
 
+function DistributionBar({ report }) {
+  const total = report.total || 1;
+  const segments = [
+    { tier: "적극추천", count: report.counts["적극추천"] || 0 },
+    { tier: "검토", count: report.counts["검토"] || 0 },
+    { tier: "패스", count: report.counts["패스"] || 0 },
+  ];
+  return (
+    <div className="mb-4">
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-800">
+        {segments.map((seg) => {
+          const width = useFillWidth((seg.count / total) * 100);
+          return seg.count > 0 ? (
+            <div
+              key={seg.tier}
+              className={`h-full ${tierStyle(seg.tier).bar} transition-[width] duration-700 ease-out first:rounded-l-full last:rounded-r-full`}
+              style={{ width: `${width}%` }}
+              title={`${seg.tier} ${seg.count}건`}
+            />
+          ) : null;
+        })}
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-500">
+        {segments.map((seg) => (
+          <span key={seg.tier} className="flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${tierStyle(seg.tier).bar}`} />
+            {tierStyle(seg.tier).icon} {seg.tier} {seg.count}건 (
+            {Math.round((seg.count / total) * 100)}%)
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Summary({ report }) {
   const tiles = [
-    { label: "전체 공고", value: report.total },
-    { label: "적극추천", value: report.counts["적극추천"], tone: "text-emerald-400" },
-    { label: "검토", value: report.counts["검토"], tone: "text-amber-400" },
-    { label: "패스", value: report.counts["패스"], tone: "text-slate-400" },
-    { label: "사전 필터링", value: report.filtered_out, hint: "위원회 미실행" },
+    { label: "전체 공고", value: report.total, icon: "📋" },
+    { label: "적극추천", value: report.counts["적극추천"], tone: "text-emerald-400", icon: "🚀" },
+    { label: "검토", value: report.counts["검토"], tone: "text-amber-400", icon: "👀" },
+    { label: "패스", value: report.counts["패스"], tone: "text-slate-400", icon: "🚫" },
+    { label: "사전 필터링", value: report.filtered_out, hint: "위원회 미실행", icon: "🧹" },
     {
       label: "소요 시간",
       value:
         report.total_latency_ms < 1000
           ? `${report.total_latency_ms}ms`
           : `${(report.total_latency_ms / 1000).toFixed(1)}s`,
+      icon: "⏱️",
     },
   ];
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-      {tiles.map((tile) => (
-        <div
-          key={tile.label}
-          className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2"
-        >
-          <p className="text-[13px] tracking-wide text-slate-500 uppercase">{tile.label}</p>
-          <p className={`font-mono text-lg font-bold ${tile.tone || "text-slate-200"}`}>
-            {tile.value}
-          </p>
-          {tile.hint && <p className="text-[13px] text-slate-600">{tile.hint}</p>}
-        </div>
-      ))}
-    </div>
+    <>
+      <DistributionBar report={report} />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {tiles.map((tile) => (
+          <div
+            key={tile.label}
+            className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 transition-colors hover:border-slate-700"
+          >
+            <p className="flex items-center gap-1.5 text-[13px] tracking-wide text-slate-500 uppercase">
+              <span aria-hidden>{tile.icon}</span>
+              {tile.label}
+            </p>
+            <p className={`font-mono text-lg font-bold ${tile.tone || "text-slate-200"}`}>
+              {tile.value}
+            </p>
+            {tile.hint && <p className="text-[13px] text-slate-600">{tile.hint}</p>}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -119,18 +183,20 @@ function Detail({ item }) {
   );
 }
 
-function Row({ item, expanded, onToggle }) {
+function Row({ item, expanded, onToggle, index }) {
   const style = tierStyle(item.recommendation);
   return (
     <>
       <tr
         onClick={onToggle}
-        className="cursor-pointer border-t border-slate-800 hover:bg-slate-800/30"
+        className="fade-in-up cursor-pointer border-t border-slate-800 hover:bg-slate-800/30"
+        style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
       >
-        <td className="px-3 py-2.5">
+        <td className={`border-l-4 py-2.5 pr-3 pl-2.5 ${style.accent}`}>
           <span
-            className={`rounded px-2 py-0.5 text-[14px] font-bold ${style.bg} ${style.text}`}
+            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[14px] font-bold ${style.bg} ${style.text}`}
           >
+            <span aria-hidden>{style.icon}</span>
             {item.recommendation}
           </span>
         </td>
@@ -269,10 +335,11 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
                 </tr>
               </thead>
               <tbody>
-                {report.items.map((item) => (
+                {report.items.map((item, index) => (
                   <Row
                     key={item.bid_id}
                     item={item}
+                    index={index}
                     expanded={expanded === item.bid_id}
                     onToggle={() =>
                       setExpanded((prev) => (prev === item.bid_id ? null : item.bid_id))

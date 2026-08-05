@@ -1,13 +1,27 @@
 import { useState } from "react";
 import { decisionStyle, percent } from "../lib/format";
+import useFillWidth from "../lib/useFillWidth";
 import CommitteeAvatar from "./CommitteeAvatar";
 
 function ConfidenceBar({ value, tone }) {
+  const width = useFillWidth(Math.round((value ?? 0) * 100));
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
       <div
-        className={`h-full rounded-full ${tone} transition-[width] duration-700`}
-        style={{ width: `${Math.round((value ?? 0) * 100)}%` }}
+        className={`h-full rounded-full ${tone} transition-[width] duration-700 ease-out`}
+        style={{ width: `${width}%` }}
+      />
+    </div>
+  );
+}
+
+function CriteriaBar({ score }) {
+  const width = useFillWidth(Math.round(score * 100));
+  return (
+    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
+      <div
+        className="h-full rounded-full bg-slate-500 transition-[width] duration-700 ease-out"
+        style={{ width: `${width}%` }}
       />
     </div>
   );
@@ -21,12 +35,7 @@ function Criteria({ scores }) {
       {entries.map(([name, score]) => (
         <div key={name} className="flex items-center gap-2">
           <span className="w-28 shrink-0 truncate text-[13px] text-slate-400">{name}</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
-            <div
-              className="h-full rounded-full bg-slate-500"
-              style={{ width: `${Math.round(score * 100)}%` }}
-            />
-          </div>
+          <CriteriaBar score={score} />
           <span className="w-9 text-right font-mono text-[13px] text-slate-400">
             {score.toFixed(2)}
           </span>
@@ -43,7 +52,7 @@ export default function AgentCard({ profile, opinion, status }) {
   return (
     <article
       className={`flex flex-col rounded-xl border bg-slate-900/40 transition-colors ${
-        opinion ? style.border : "border-slate-800"
+        opinion ? `${style.border} fade-in-up` : "border-slate-800"
       } ${status === "running" ? "pulse-ring" : ""}`}
     >
       <header className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
