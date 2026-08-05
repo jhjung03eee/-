@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { decisionStyle, krw, percent, score10 } from "../lib/format";
 import useFillWidth from "../lib/useFillWidth";
 import Panel from "./Panel";
@@ -31,6 +31,13 @@ const TIER = {
 };
 
 const tierStyle = (tier) => TIER[tier] || TIER["검토"];
+const TIER_ORDER = { 적극추천: 0, 검토: 1, 패스: 2 };
+const ACTION_STATES = ["검토 전", "담당자 배정", "보류", "제외"];
+
+function deadlineLabel(item) {
+  if (item.days_left === null) return "마감 미확인";
+  return `D${item.days_left >= 0 ? "-" : "+"}${Math.abs(item.days_left)}`;
+}
 
 function DistributionBar({ report }) {
   const total = report.total || 1;
@@ -183,78 +190,134 @@ function Detail({ item }) {
   );
 }
 
-function Row({ item, expanded, onToggle, index }) {
+function ActionSelect({ value, onChange }) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      onClick={(event) => event.stopPropagation()}
+      className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300 outline-none focus:border-sky-500"
+      aria-label="업무 상태"
+    >
+      {ACTION_STATES.map((status) => (
+        <option key={status}>{status}</option>
+      ))}
+    </select>
+  );
+}
+
+function QueueCard({ item, onSelect, selected }) {
   const style = tierStyle(item.recommendation);
   return (
-    <>
-      <tr
-        onClick={onToggle}
-        className="fade-in-up cursor-pointer border-t border-slate-800 hover:bg-slate-800/30"
-        style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
-      >
-        <td className={`border-l-4 py-2.5 pr-3 pl-2.5 ${style.accent}`}>
-          <span
-            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[14px] font-bold ${style.bg} ${style.text}`}
-          >
-            <span aria-hidden>{style.icon}</span>
-            {item.recommendation}
-          </span>
-        </td>
-        <td className="px-3 py-2.5">
-          <p className="truncate text-sm font-medium text-slate-200">{item.title}</p>
-          <p className="truncate text-[14px] text-slate-500">
-            {item.bid_id} · {item.agency || "발주처 미확인"}
-          </p>
-        </td>
-        <td className="px-3 py-2.5 text-right font-mono text-sm text-slate-300">
-          {krw(item.budget_krw)}
-        </td>
-        <td className="px-3 py-2.5 text-right">
-          {item.days_left === null ? (
-            <span className="text-[14px] text-slate-600">미확인</span>
-          ) : (
-            <span
-              className={`font-mono text-sm ${
-                item.days_left < 0
-                  ? "text-slate-600"
-                  : item.urgent
-                    ? "font-bold text-rose-400"
-                    : "text-slate-300"
-              }`}
-            >
-              D{item.days_left >= 0 ? "-" : "+"}
-              {Math.abs(item.days_left)}
-            </span>
-          )}
-        </td>
-        <td className="px-3 py-2.5 text-right font-mono text-sm text-slate-400">
-          {score10(item.score)}
-        </td>
-        <td className="max-w-md px-3 py-2.5">
-          <p className="truncate text-[14px] text-slate-400">{item.reason}</p>
-        </td>
-        <td className="px-3 py-2.5 text-center">
-          {item.human_review_required && (
-            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[13px] text-amber-300">
-              검토요
-            </span>
-          )}
-        </td>
-        <td className="px-2 py-2.5 text-slate-600 print:hidden">{expanded ? "−" : "+"}</td>
-      </tr>
-      {expanded && (
-        <tr>
-          <td colSpan={8} className="p-0">
-            <Detail item={item} />
-          </td>
-        </tr>
-      )}
-    </>
+    <button
+      onClick={() => onSelect(item.bid_id)}
+      className={`fade-in-up min-w-0 rounded-lg border border-l-4 p-3 text-left transition ${style.accent} ${
+        selected
+          ? "border-sky-400 bg-slate-800/80 shadow-[0_8px_20px_rgb(0_0_0_/_0.18)]"
+          : "border-slate-800 bg-slate-900/55 hover:border-slate-700 hover:bg-slate-800/60"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${style.bg} ${style.text}`}>
+          {style.icon} {item.recommendation}
+        </span>
+        <span className={`font-mono text-sm font-bold ${style.text}`}>{score10(item.score)}</span>
+      </div>
+      <p className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-slate-100">{item.title}</p>
+      <p className="mt-1 truncate text-xs text-slate-500">{item.agency || "발주처 미확인"}</p>
+      <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+        <span className="font-mono text-slate-400">{krw(item.budget_krw)}</span>
+        <span className={item.urgent ? "font-mono font-bold text-rose-400" : "font-mono text-slate-400"}>
+          {deadlineLabel(item)}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function ListItem({ item, selected, status, onSelect, onStatusChange }) {
+  const style = tierStyle(item.recommendation);
+  return (
+    <div
+      className={`flex w-full items-center gap-3 border-l-4 px-3 py-3 text-left transition ${style.accent} ${
+        selected ? "bg-sky-500/10" : "hover:bg-slate-800/55"
+      }`}
+    >
+      <button onClick={() => onSelect(item.bid_id)} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${item.title} 상세 보기`}>
+        <span className={`hidden shrink-0 rounded px-1.5 py-0.5 text-xs font-bold sm:inline ${style.bg} ${style.text}`}>
+          {style.icon} {item.recommendation}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="truncate text-sm font-medium text-slate-100">{item.title}</p>
+            {item.human_review_required && <span className="shrink-0 text-xs" title="담당자 검토 필요">⚠️</span>}
+          </div>
+          <p className="mt-0.5 truncate text-xs text-slate-500">{item.bid_id} · {item.agency || "발주처 미확인"}</p>
+        </div>
+        <div className="hidden w-20 shrink-0 text-right sm:block">
+          <p className={`font-mono text-sm font-bold ${style.text}`}>{score10(item.score)}</p>
+          <p className={item.urgent ? "font-mono text-xs font-bold text-rose-400" : "font-mono text-xs text-slate-500"}>{deadlineLabel(item)}</p>
+        </div>
+      </button>
+      <ActionSelect value={status} onChange={(event) => onStatusChange(item.bid_id, event.target.value)} />
+    </div>
+  );
+}
+
+function DetailPanel({ item, status, onStatusChange }) {
+  if (!item) {
+    return <div className="flex min-h-72 items-center justify-center border border-dashed border-slate-800 px-5 text-center text-sm text-slate-500">목록에서 공고를 선택하면 심의 근거와 위원회 의견을 확인할 수 있습니다.</div>;
+  }
+  const style = tierStyle(item.recommendation);
+  return (
+    <aside className="border border-slate-800 bg-slate-900/55 xl:sticky xl:top-4">
+      <div className={`border-l-4 p-4 ${style.accent}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${style.bg} ${style.text}`}>{style.icon} {item.recommendation}</span>
+            <h3 className="mt-2 text-base font-semibold leading-snug text-slate-50">{item.title}</h3>
+            <p className="mt-1 text-xs text-slate-500">{item.bid_id} · {item.agency || "발주처 미확인"}</p>
+          </div>
+          <span className={`font-mono text-lg font-bold ${style.text}`}>{score10(item.score)}</span>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2 border-y border-slate-800 py-3 text-xs">
+          <div><p className="text-slate-500">예산</p><p className="mt-0.5 font-mono text-slate-200">{krw(item.budget_krw)}</p></div>
+          <div><p className="text-slate-500">마감</p><p className={`mt-0.5 font-mono ${item.urgent ? "font-bold text-rose-400" : "text-slate-200"}`}>{deadlineLabel(item)}</p></div>
+          <div><p className="text-slate-500">업무 상태</p><div className="mt-1"><ActionSelect value={status} onChange={(event) => onStatusChange(item.bid_id, event.target.value)} /></div></div>
+        </div>
+      </div>
+      <Detail item={item} />
+    </aside>
   );
 }
 
 export default function ScreeningView({ corpus, report, busy, onRun }) {
-  const [expanded, setExpanded] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [tierFilter, setTierFilter] = useState("전체");
+  const [reviewOnly, setReviewOnly] = useState(false);
+  const [sortBy, setSortBy] = useState("priority");
+  const [actionStatus, setActionStatus] = useState({});
+
+  const updateStatus = (bidId, status) => setActionStatus((current) => ({ ...current, [bidId]: status }));
+  const selectedItem = report?.items.find((item) => item.bid_id === selectedId) || null;
+  const visibleItems = useMemo(() => {
+    if (!report) return [];
+    return report.items
+      .filter((item) => tierFilter === "전체" || item.recommendation === tierFilter)
+      .filter((item) => !reviewOnly || item.human_review_required)
+      .sort((a, b) => {
+        if (sortBy === "score") return b.score - a.score;
+        if (sortBy === "deadline") return (a.days_left ?? Infinity) - (b.days_left ?? Infinity);
+        return TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] || b.score - a.score;
+      });
+  }, [report, reviewOnly, sortBy, tierFilter]);
+  const priorityItems = useMemo(() => {
+    if (!report) return [];
+    return [...report.items]
+      .filter((item) => !item.screen.blocked && item.recommendation !== "패스")
+      .sort((a, b) => TIER_ORDER[a.recommendation] - TIER_ORDER[b.recommendation] || b.score - a.score)
+      .slice(0, 3);
+  }, [report]);
 
   return (
     <div className="space-y-4">
@@ -300,56 +363,39 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
       </div>
 
       {report && (
-        <Panel
-          title="스크리닝 리포트"
-          subtitle="적극추천 → 검토 → 패스 순, 동일 등급 내에서는 마감 임박 순"
-          actions={
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-500">
-                {report.company} · {report.generated_at}
-              </span>
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-500 print:hidden"
-              >
-                📄 PDF 다운로드
-              </button>
-            </div>
-          }
-        >
-          <div className="mb-4">
+        <div className="space-y-4">
+          <Panel title="스크리닝 개요" subtitle={`${report.company} · ${report.generated_at}`} actions={<button onClick={() => window.print()} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-500 print:hidden">📄 PDF 다운로드</button>}>
             <Summary report={report} />
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
-              <thead>
-                <tr className="text-sm tracking-wide text-slate-500 uppercase">
-                  <th className="px-3 pb-2 text-left">등급</th>
-                  <th className="px-3 pb-2 text-left">공고</th>
-                  <th className="px-3 pb-2 text-right">예산</th>
-                  <th className="px-3 pb-2 text-right">마감</th>
-                  <th className="px-3 pb-2 text-right">스코어</th>
-                  <th className="px-3 pb-2 text-left">판단 근거</th>
-                  <th className="px-3 pb-2" />
-                  <th className="px-2 pb-2 print:hidden" />
-                </tr>
-              </thead>
-              <tbody>
-                {report.items.map((item, index) => (
-                  <Row
-                    key={item.bid_id}
-                    item={item}
-                    index={index}
-                    expanded={expanded === item.bid_id}
-                    onToggle={() =>
-                      setExpanded((prev) => (prev === item.bid_id ? null : item.bid_id))
-                    }
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
+          </Panel>
+
+          <section className="print:hidden">
+            <div className="mb-2 flex items-center justify-between"><div><h2 className="text-base font-semibold text-slate-100">오늘의 우선 검토</h2><p className="mt-0.5 text-sm text-slate-500">점수와 등급 기준으로 먼저 확인할 공고입니다.</p></div><span className="font-mono text-sm text-slate-500">TOP {priorityItems.length}</span></div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {priorityItems.map((item) => <QueueCard key={item.bid_id} item={item} selected={selectedId === item.bid_id} onSelect={setSelectedId} />)}
+            </div>
+          </section>
+
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.78fr)]">
+            <div className="border border-slate-800 bg-slate-900/55">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-3">
+                <div><h2 className="text-base font-semibold text-slate-100">전체 공고 목록</h2><p className="mt-0.5 text-xs text-slate-500">{visibleItems.length}건 표시 · 선택 시 오른쪽에서 상세 확인</p></div>
+                <div className="flex flex-wrap items-center gap-2 print:hidden">
+                  <select value={tierFilter} onChange={(event) => setTierFilter(event.target.value)} className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-sky-500" aria-label="등급 필터">
+                    <option>전체</option><option>적극추천</option><option>검토</option><option>패스</option>
+                  </select>
+                  <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-sky-500" aria-label="정렬 기준">
+                    <option value="priority">우선순위순</option><option value="score">점수순</option><option value="deadline">마감순</option>
+                  </select>
+                  <label className="flex items-center gap-1.5 text-xs text-slate-400"><input type="checkbox" checked={reviewOnly} onChange={(event) => setReviewOnly(event.target.checked)} className="accent-sky-500" /> 담당자 검토</label>
+                </div>
+              </div>
+              <div className="divide-y divide-slate-800">
+                {visibleItems.map((item) => <ListItem key={item.bid_id} item={item} selected={selectedId === item.bid_id} status={actionStatus[item.bid_id] || "검토 전"} onSelect={setSelectedId} onStatusChange={updateStatus} />)}
+              </div>
+            </div>
+            <DetailPanel item={selectedItem} status={selectedItem ? actionStatus[selectedItem.bid_id] || "검토 전" : "검토 전"} onStatusChange={updateStatus} />
+          </section>
+        </div>
       )}
     </div>
   );
