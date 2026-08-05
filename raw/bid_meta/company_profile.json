@@ -1,0 +1,50 @@
+{
+  "company_name": "KIA 주식회사",
+  "stock_code": "000270",
+  "business_type": "자동차 제조·자율주행 솔루션",
+  "capital": "500,000,000,000",
+  "capital_display": "5,000억원",
+  "established": "1944",
+  "employees": 38000,
+  "licenses": [
+    {"name": "정보통신공사업", "grade": "1급", "issue_date": "2020-03-15", "issuer": "과학기술정보통신부"},
+    {"name": "전자계산조직응용사업", "grade": "1급", "issue_date": "2021-06-20", "issuer": "과학기술정보통신부"},
+    {"name": "소프트웨어사업", "grade": "1급", "issue_date": "2019-11-10", "issuer": "산업통상자원부"},
+    {"name": "일반소프트웨어개발사업", "grade": "1급", "issue_date": "2022-01-05", "issuer": "과학기술정보통신부"},
+    {"name": "정보처리시스템설계·구축사업", "grade": "1급", "issue_date": "2021-09-30", "issuer": "과학기술정보통신부"},
+    {"name": "건설업(토목공사)", "grade": "1급", "issue_date": "2018-04-12", "issuer": "국토교통부"},
+    {"name": "건설업(전기공사)", "grade": "1급", "issue_date": "2019-02-28", "issuer": "국토교통부"},
+    {"name": "정보보호관리체계(ISMS) 인증", "grade": "-", "issue_date": "2023-05-18", "issuer": "과학기술정보통신부"},
+    {"name": "ISO/IEC 27001 정보보안경영시스템", "grade": "-", "issue_date": "2022-08-01", "issuer": "ISO"},
+    {"name": "CMMI Level 5", "grade": "-", "issue_date": "2023-03-10", "issuer": "ISACA"}
+  ],
+  "track_records": [
+    {"project_name": "OO시 스마트시티 통합플랫폼 구축", "year": 2023, "amount": 45000000000, "amount_display": "450억원", "client": "OO시청", "category": "정보화사업"},
+    {"project_name": "OO도 지능형 CCTV 관제시스템 고도화", "year": 2022, "amount": 28000000000, "amount_display": "280억원", "client": "OO도청", "category": "정보화사업"},
+    {"project_name": "OO시 자율주행 셔틀 운영 시범사업", "year": 2023, "amount": 15000000000, "amount_display": "150억원", "client": "OO시청", "category": "연구개발사업"},
+    {"project_name": "OO광역시 모바일 민원서비스 플랫폼", "year": 2022, "amount": 9500000000, "amount_display": "95억원", "client": "OO광역시", "category": "정보화사업"},
+    {"project_name": "OO도 빅데이터 분석플랫폼 구축", "year": 2023, "amount": 38000000000, "amount_display": "380억원", "client": "OO도청", "category": "정보화사업"},
+    {"project_name": "OO시 블록체인 기반 인증시스템 구축", "year": 2022, "amount": 12000000000, "amount_display": "120억원", "client": "OO시청", "category": "정보화사업"},
+    {"project_name": "OO연구원 자율주행 레벨4 인지판단 기술 개발", "year": 2023, "amount": 9500000000, "amount_display": "95억원", "client": "OO연구원", "category": "연구개발사업"},
+    {"project_name": "OO시 친환경 주차장 조성공사", "year": 2021, "amount": 75000000000, "amount_display": "750억원", "client": "OO시청", "category": "시설공사"},
+    {"project_name": "OO도 노후 청사 그린리모델링", "year": 2022, "amount": 62000000000, "amount_display": "620억원", "client": "OO도청", "category": "시설공사"},
+    {"project_name": "OO시 데이터베이스 성능튜닝 및 이전 용역", "year": 2023, "amount": 3500000000, "amount_display": "35억원", "client": "OO시청", "category": "용역"}
+  ],
+  "technical_staff": {
+    "count": 450,
+    "breakdown": {
+      "정보통신기사": 120,
+      "정보처리기사": 95,
+      "소프트웨어개발기사": 80,
+      "네트워크관리사": 60,
+      "정보보안기사": 45,
+      "전기기사": 30,
+      "건축기사": 20
+    },
+    "senior_above": 180
+  },
+  "regions": ["서울", "경기", "인천", "전국"],
+  "preferred_categories": ["정보화사업", "연구개발사업", "용역", "시설공사"],
+  "min_project_amount": 1000000000,
+  "min_project_amount_display": "10억원"
+}

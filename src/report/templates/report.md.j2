@@ -1,0 +1,61 @@
+# KIA 입찰공고 스크리닝 리포트
+
+**생성일시**: {{ report.generated_at }}
+**데이터소스**: {{ report.corpus }}
+**기업**: {{ report.company }}
+**총 공고**: {{ report.total }}건
+
+---
+
+## 요약
+
+| 구분 | 건수 |
+|------|------|
+| 적극추천 | {{ report.counts.적극추천 }} |
+| 검토 | {{ report.counts.검토 }} |
+| 패스 | {{ report.counts.패스 }} |
+| 사전필터 제외 | {{ report.filtered_out }} |
+| 위원회 심의 | {{ report.screened_count }} |
+
+---
+
+## 상세 결과
+
+{% for item in report.screening_items %}
+### {{ loop.index }}. {{ item.title }} ({{ item.bid_id }})
+
+| 항목 | 내용 |
+|------|------|
+| **발주처** | {{ item.agency }} |
+| **카테고리** | {{ item.category }} |
+| **예산** | {{ format_krw(item.budget) }} |
+| **마감일** | {{ item.deadline.strftime('%Y-%m-%d') if item.deadline else '미확인' }}{% if item.urgent %} ⚠️ **긴급(D-{{ item.days_left }})**{% endif %} |
+| **자격판정** | {{ '통과' if item.qualification_pass else '미통과' }} |
+| **추천등급** | **{{ item.grade }}** (점수: {{ "%.3f"|format(item.score) }}) |
+| **핵심사유** | {{ item.reason }} |
+
+**자격매칭 상세:**
+{% for qm in item.qualification_matches %}
+- [{{ qm.status }}] {{ qm.requirement }}
+  - 근거: {{ qm.evidence }}
+  - KIA 증빙: {{ qm.kia_evidence }}
+{% endfor %}
+
+**스코어 분해:**
+- 자격적합도: {{ "%.2f"|format(item.breakdown.qualification_fit) }}
+- 예산적정성: {{ "%.2f"|format(item.breakdown.budget_fit) }}
+- 실적매칭: {{ "%.2f"|format(item.breakdown.track_record_match) }}
+- 평가유리도: {{ "%.2f"|format(item.breakdown.eval_criteria_advantage) }}
+- 리스크감점: {{ "%.2f"|format(item.breakdown.risk_penalty) }}
+
+**주요 리스크:**
+{% for risk in item.risks %}
+- {{ risk }}
+{% endfor %}
+
+**사전필터:** {% if item.prefilter_blocked %}차단 - {{ item.prefilter_reasons | join(', ') }}{% else %}통과{% endif %}
+
+---
+{% endfor %}
+
+*KIA 입찰공고 자동 스크리닝 시스템*

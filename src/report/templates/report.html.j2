@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIA 입찰공고 스크리닝 리포트</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+        header { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; padding: 30px; }
+        h1 { font-size: 1.8rem; font-weight: 600; }
+        .meta { display: flex; gap: 24px; margin-top: 12px; font-size: 0.9rem; opacity: 0.9; flex-wrap: wrap; }
+        .meta-item { display: flex; align-items: center; gap: 6px; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; padding: 24px; background: #f8f9fa; border-bottom: 1px solid #eee; }
+        .stat { background: white; padding: 16px; border-radius: 8px; border-left: 4px solid #e2e8f0; }
+        .stat-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #1e3a5f; }
+        .stat-value.strong { color: #276749; }
+        .stat-value.review { color: #b7791f; }
+        .stat-value.pass { color: #744210; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f7fafc; font-weight: 600; color: #4a5568; position: sticky; top: 0; }
+        tr:hover { background: #fafafa; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        .badge-strong { background: #e6fff2; color: #276749; }
+        .badge-review { background: #fffaf0; color: #b7791f; }
+        .badge-pass { background: #fafafa; color: #744210; }
+        .badge-urgent { background: #fff5f5; color: #c53030; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .budget { font-family: monospace; font-size: 0.85rem; }
+        .details { display: none; padding: 16px; background: #f7fafc; border-top: 1px solid #eee; }
+        .details.open { display: block; }
+        .detail-row { display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+        .detail-label { font-weight: 600; color: #4a5568; min-width: 120px; }
+        .detail-value { color: #333; }
+        .risk-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-right: 6px; margin-bottom: 4px; }
+        .risk-high { background: #fff5f5; color: #c53030; }
+        .risk-medium { background: #fffaf0; color: #b7791f; }
+        .risk-low { background: #f0fff4; color: #276749; }
+        .footer { padding: 20px; text-align: center; color: #718096; font-size: 0.8rem; border-top: 1px solid #eee; }
+        .filter-bar { padding: 16px 24px; background: #f7fafc; border-bottom: 1px solid #eee; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        .filter-bar select, .filter-bar input { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.85rem; }
+        .filter-bar select { min-width: 160px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>KIA 입찰공고 스크리닝 리포트</h1>
+            <div class="meta">
+                <span class="meta-item">생성일시: {{ report.generated_at }}</span>
+                <span class="meta-item">데이터소스: {{ report.corpus }}</span>
+                <span class="meta-item">기업: {{ report.company }}</span>
+                <span class="meta-item">총 {{ report.total }}건</span>
+            </div>
+        </header>
+
+        <div class="summary">
+            <div class="stat">
+                <div class="stat-label">적극추천</div>
+                <div class="stat-value strong">{{ report.counts.적극추천 }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">검토</div>
+                <div class="stat-value review">{{ report.counts.검토 }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">패스</div>
+                <div class="stat-value pass">{{ report.counts.패스 }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">사전필터 제외</div>
+                <div class="stat-value">{{ report.filtered_out }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">위원회 심의</div>
+                <div class="stat-value">{{ report.screened_count }}</div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <label>등급 필터:
+                <select id="gradeFilter">
+                    <option value="">전체</option>
+                    <option value="적극추천">적극추천</option>
+                    <option value="검토">검토</option>
+                    <option value="패스">패스</option>
+                </select>
+            </label>
+            <label>카테고리:
+                <select id="categoryFilter">
+                    <option value="">전체</option>
+                    <option value="정보화사업">정보화사업</option>
+                    <option value="연구개발사업">연구개발사업</option>
+                    <option value="시설공사">시설공사</option>
+                    <option value="용역">용역</option>
+                    <option value="물품구매">물품구매</option>
+                </select>
+            </label>
+            <label><input type="checkbox" id="urgentOnly"> 긴급(D-7이내)만</label>
+            <button onclick="clearFilters()" style="margin-left:auto; padding:8px 16px; background:#1e3a5f; color:white; border:none; border-radius:4px;">필터 초기화</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table id="bidTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">공고번호</th>
+                        <th onclick="sortTable(1)">사업명</th>
+                        <th onclick="sortTable(2)">발주처</th>
+                        <th onclick="sortTable(3)">예산</th>
+                        <th onclick="sortTable(4)">마감일</th>
+                        <th onclick="sortTable(5)">자격판정</th>
+                        <th onclick="sortTable(6)">리스크</th>
+                        <th onclick="sortTable(7)">추천등급</th>
+                        <th>핵심사유</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report.screening_items %}
+                    <tr class="data-row" data-grade="{{ item.grade }}" data-category="{{ item.category }}" data-urgent="{{ 'true' if item.urgent else 'false' }}">
+                        <td>{{ item.bid_id }}</td>
+                        <td>{{ item.title }}</td>
+                        <td>{{ item.agency }}</td>
+                        <td class="budget">{{ format_krw(item.budget) }}</td>
+                        <td>{{ item.deadline.strftime('%m-%d') if item.deadline else '-' }}{% if item.urgent %} <span class="badge badge-urgent">긴급</span>{% endif %}</td>
+                        <td>{{ '통과' if item.qualification_pass else '미통과' }}</td>
+                        <td>
+                            {% for risk in item.risks[:3] %}
+                                <span class="risk-tag {% if 'HIGH' in risk %}risk-high{% elif 'MEDIUM' in risk %}risk-medium{% else %}risk-low{% endif %}">{{ risk.split(':')[0].replace('[','').replace(']','') }}</span>
+                            {% endfor %}
+                        </td>
+                        <td><span class="badge badge-{{ 'strong' if item.grade == '적극추천' else 'review' if item.grade == '검토' else 'pass' }}">{{ item.grade }}</span></td>
+                        <td>{{ item.reason }}</td>
+                    </tr>
+                    <tr class="details" id="detail-{{ loop.index }}">
+                        <td colspan="9">
+                            <div class="detail-row">
+                                <span class="detail-label">자격매칭 상세:</span>
+                                <span class="detail-value">
+                                    {% for qm in item.qualification_matches %}
+                                        [{{ qm.status }}] {{ qm.requirement[:80] }}...<br>
+                                    {% endfor %}
+                                </span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">스코어 분해:</span>
+                                <span class="detail-value">
+                                    자격적합도 {{ "%.2f"|format(item.breakdown.qualification_fit) }} ·
+                                    예산적정성 {{ "%.2f"|format(item.breakdown.budget_fit) }} ·
+                                    실적매칭 {{ "%.2f"|format(item.breakdown.track_record_match) }} ·
+                                    평가유리도 {{ "%.2f"|format(item.breakdown.eval_criteria_advantage) }} ·
+                                    리스크감점 {{ "%.2f"|format(item.breakdown.risk_penalty) }}
+                                </span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">주요 리스크:</span>
+                                <span class="detail-value">
+                                    {% for risk in item.risks %}{{ risk }}<br>{% endfor %}
+                                </span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">사전필터:</span>
+                                <span class="detail-value">
+                                    {% if item.prefilter_blocked %}차단: {{ item.prefilter_reasons | join(', ') }}
+                                    {% else %}통과{% endif %}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            KIA 입찰공고 자동 스크리닝 시스템 · 데이터 기준: {{ report.generated_at[:10] }} ·
+            <a href="#" onclick="exportCSV()">CSV 내보내기</a>
+        </div>
+    </div>
+
+    <script>
+        const rows = document.querySelectorAll('#bidTable tbody tr.data-row');
+        const detailRows = document.querySelectorAll('#bidTable tbody tr.details');
+
+        function formatKrw(num) {
+            if (!num) return '-';
+            if (num >= 1e8) return (num / 1e8).toFixed(1) + '억';
+            if (num >= 1e4) return (num / 1e4).toFixed(0) + '만';
+            return num.toLocaleString();
+        }
+
+        function filterTable() {
+            const grade = document.getElementById('gradeFilter').value;
+            const cat = document.getElementById('categoryFilter').value;
+            const urgent = document.getElementById('urgentOnly').checked;
+
+            rows.forEach((row, i) => {
+                const g = row.dataset.grade;
+                const c = row.dataset.category;
+                const u = row.dataset.urgent === 'true';
+                const show = (!grade || g === grade) && (!cat || c === cat) && (!urgent || u);
+                row.style.display = show ? '' : 'none';
+                detailRows[i].style.display = show && detailRows[i].classList.contains('open') ? '' : 'none';
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('gradeFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('urgentOnly').checked = false;
+            filterTable();
+        }
+
+        document.getElementById('gradeFilter').addEventListener('change', filterTable);
+        document.getElementById('categoryFilter').addEventListener('change', filterTable);
+        document.getElementById('urgentOnly').addEventListener('change', filterTable);
+
+        let sortDir = 1;
+        let lastCol = -1;
+
+        function sortTable(col) {
+            const tbody = document.querySelector('#bidTable tbody');
+            const rowsArr = Array.from(rows);
+            sortDir = (col === lastCol) ? -sortDir : 1;
+            lastCol = col;
+
+            rowsArr.sort((a, b) => {
+                const aVal = a.cells[col].textContent.trim();
+                const bVal = b.cells[col].textContent.trim();
+                let cmp = 0;
+                if (col === 3) {
+                    cmp = parseInt(aVal.replace(/[^0-9]/g,'')) - parseInt(bVal.replace(/[^0-9]/g,''));
+                } else if (col === 4) {
+                    cmp = new Date('2025-' + aVal.split(' ')[0].replace('.','-')) - new Date('2025-' + bVal.split(' ')[0].replace('.','-'));
+                } else {
+                    cmp = aVal.localeCompare(bVal, 'ko');
+                }
+                return cmp * sortDir;
+            });
+
+            rowsArr.forEach(r => {
+                tbody.appendChild(r);
+                const detailId = r.nextElementSibling;
+                if (detailId && detailId.classList.contains('details')) {
+                    tbody.appendChild(detailId);
+                }
+            });
+        }
+
+        rows.forEach((row, i) => {
+            row.addEventListener('click', (e) => {
+                if (e.target.tagName === 'TH') return;
+                const detail = detailRows[i];
+                detail.classList.toggle('open');
+                if (detail.classList.contains('open')) {
+                    detail.style.display = '';
+                } else {
+                    detail.style.display = 'none';
+                }
+            });
+        });
+
+        function exportCSV() {
+            const visibleRows = Array.from(rows).filter(r => r.style.display !== 'none');
+            const headers = ['공고번호','사업명','발주처','예산','마감일','자격판정','추천등급','핵심사유'];
+            const csv = [headers.join(',')].concat(
+                visibleRows.map(r => {
+                    const cells = r.cells;
+                    return [cells[0].textContent, '"'+cells[1].textContent.replace(/"/g,'""')+'"', cells[2].textContent,
+                            cells[3].textContent, cells[4].textContent, cells[5].textContent, cells[7].textContent, '"'+cells[8].textContent.replace(/"/g,'""')+'"'].join(',');
+                })
+            ).join('\n');
+            const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'kia_bid_screening_report.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        filterTable();
+    </script>
+</body>
+</html>
