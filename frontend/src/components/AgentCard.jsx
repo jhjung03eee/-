@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ROLE_AVATAR, ROLE_INITIAL, decisionStyle, percent } from "../lib/format";
+import { decisionStyle, percent } from "../lib/format";
+import CommitteeAvatar from "./CommitteeAvatar";
 
 function ConfidenceBar({ value, tone }) {
   return (
@@ -38,7 +39,6 @@ function Criteria({ scores }) {
 export default function AgentCard({ profile, opinion, status }) {
   const [showEvidence, setShowEvidence] = useState(false);
   const style = opinion ? decisionStyle(opinion.decision) : null;
-  const avatar = ROLE_AVATAR[profile.role] || "bg-slate-700/30 text-slate-300 ring-slate-600";
 
   return (
     <article
@@ -48,11 +48,7 @@ export default function AgentCard({ profile, opinion, status }) {
     >
       <header className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-bold ring-2 ${avatar}`}
-          >
-            {ROLE_INITIAL[profile.role] || "위"}
-          </span>
+          <CommitteeAvatar role={profile.role} size={44} />
           <div className="min-w-0">
             <h3 className="flex items-center gap-2 text-base font-semibold text-slate-100">
               {profile.display_name}

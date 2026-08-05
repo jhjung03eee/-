@@ -1,4 +1,5 @@
-import { ROLE_AVATAR, ROLE_INITIAL, decisionStyle, percent } from "../lib/format";
+import { decisionStyle, percent } from "../lib/format";
+import CommitteeAvatar from "./CommitteeAvatar";
 import Panel from "./Panel";
 
 export default function CommitteeVoting({ committee }) {
@@ -18,14 +19,9 @@ export default function CommitteeVoting({ committee }) {
       <div className="space-y-3">
         {committee.votes.map((vote) => {
           const style = decisionStyle(vote.decision);
-          const avatar = ROLE_AVATAR[vote.role] || "bg-slate-700/30 text-slate-300 ring-slate-600";
           return (
             <div key={vote.role} className="flex items-center gap-3">
-              <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ring-2 ${avatar}`}
-              >
-                {ROLE_INITIAL[vote.role] || "위"}
-              </span>
+              <CommitteeAvatar role={vote.role} size={28} />
               <span className="w-24 shrink-0 truncate text-sm text-slate-300">
                 {vote.display_name}
               </span>

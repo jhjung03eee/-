@@ -1,4 +1,5 @@
-import { CHAIR_AVATAR, CHAIR_INITIAL, decisionStyle, percent, stars } from "../lib/format";
+import { decisionStyle, percent, stars } from "../lib/format";
+import CommitteeAvatar from "./CommitteeAvatar";
 import Panel from "./Panel";
 
 function List({ title, items, tone }) {

@@ -34,11 +34,19 @@ body {
 @media print {
   @page {
     size: A4;
-    margin: 14mm;
+    margin: 12mm;
   }
 
   html {
-    font-size: 13px;
+    font-size: 12px;
+  }
+
+  * {
+    /* Chrome/Edge drop background colors on print unless forced — without
+       this every badge, avatar, and progress bar prints blank. */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   body {
@@ -48,6 +56,12 @@ body {
 
   .print\:hidden {
     display: none !important;
+  }
+
+  .mx-auto.max-w-7xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   [class*="bg-slate-9"],
@@ -81,6 +95,31 @@ body {
   article,
   section {
     break-inside: avoid;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  /* Tailwind's responsive grid columns key off viewport width, but a
+     printed page's layout width is the paper size minus margins — not the
+     screen width the classes were authored for — so md:/xl:/lg: variants
+     often silently fail to apply and everything collapses to one column.
+     Force the intended column counts explicitly for print instead. */
+  [class*="md:grid-cols-2"][class*="xl:grid-cols-4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  [class*="grid-cols-2"][class*="sm:grid-cols-3"][class*="lg:grid-cols-6"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  [class*="grid-cols-2"][class*="md:grid-cols-3"][class*="lg:grid-cols-6"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  [class*="grid"][class*="md:grid-cols-3"]:not([class*="lg:grid-cols-6"]) {
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 
