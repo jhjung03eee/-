@@ -29,11 +29,7 @@ export default function ExecutiveReport({ committee }) {
     <Panel
       title={
         <span className="flex items-center gap-2">
-          <span
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ring-2 ${CHAIR_AVATAR}`}
-          >
-            {CHAIR_INITIAL}
-          </span>
+          <CommitteeAvatar role="chair" size={32} />
           Executive Report
         </span>
       }

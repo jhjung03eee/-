@@ -121,6 +121,63 @@ body {
   [class*="grid"][class*="md:grid-cols-3"]:not([class*="lg:grid-cols-6"]) {
     grid-template-columns: repeat(3, 1fr) !important;
   }
+
+  /* The screening table sets min-w-[900px] so it can scroll horizontally on
+     screen — on a fixed-width printed page that just gets clipped, cutting
+     the last column(s) off mid-sentence. Let it shrink to the page and wrap
+     instead of truncating with an ellipsis. */
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  [class*="min-w-["] {
+    min-width: 0 !important;
+  }
+
+  .max-w-md {
+    max-width: none !important;
+  }
+
+  .truncate {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    word-break: break-word;
+  }
+
+  table th:nth-child(1),
+  table td:nth-child(1) {
+    width: 9%;
+  }
+  table th:nth-child(2),
+  table td:nth-child(2) {
+    width: 26%;
+  }
+  table th:nth-child(3),
+  table td:nth-child(3) {
+    width: 10%;
+  }
+  table th:nth-child(4),
+  table td:nth-child(4) {
+    width: 8%;
+  }
+  table th:nth-child(5),
+  table td:nth-child(5) {
+    width: 7%;
+  }
+  table th:nth-child(6),
+  table td:nth-child(6) {
+    width: 32%;
+  }
+  table th:nth-child(7),
+  table td:nth-child(7) {
+    width: 8%;
+  }
 }
 
 @keyframes pulse-ring {
