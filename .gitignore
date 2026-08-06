@@ -69,3 +69,6 @@ raw/bids/
 raw/bids_md/
 raw/bid_meta/*.json
 !raw/bid_meta/company_profile.json
+
+# Artifacts
+<|names
