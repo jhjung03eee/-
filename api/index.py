@@ -250,6 +250,19 @@ async def screen_bids(request: ScreenRequest):
     )
 
 
+# Serve frontend HTML at root
+FRONTEND_HTML = Path(__file__).parent / "frontend" / "index.html"
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    """프론트엔드 HTML 서빙"""
+    if FRONTEND_HTML.exists():
+        return FRONTEND_HTML.read_text(encoding="utf-8")
+    return HTMLResponse(
+        content="<h1>Frontend not found</h1><p>Please deploy with frontend/index.html</p>",
+        status_code=404
+    )
+
 # Catch-all for SPA (if frontend exists)
 frontend_dist = Path(__file__).parent / "frontend" / "dist"
 if frontend_dist.exists() and not os.environ.get("VERCEL"):
