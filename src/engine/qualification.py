@@ -20,43 +20,77 @@ async def match_qualifications(
     """
     자격요건 매칭:
     1. 규칙 기반 1차 판단 (확실한 경우만)
-    2. 애매한 경우 LLM 호출
+    2. 애매한 경우 LLM 호출 (병렬 처리)
     3. LLM 실패 시 휴리스틱 폴백
     """
-    results = []
+    import asyncio
 
+    # 1단계: 모든 요건에 대해 규칙 기반 판단
+    rule_results = {}
+    needs_llm = []
+    
     for req in record.qualifications:
-        # 1단계: 규칙 기반 빠른 판단
         rule_result = _rule_based_match(req, company)
         if rule_result.status in ("충족", "미충족"):
-            results.append(rule_result)
-            continue
-
-        # 2단계: LLM 판단 시도
-        if llm_client:
-            try:
-                llm_result = await _llm_match(req, company, llm_client)
-                results.append(llm_result)
-                continue
-            except Exception as e:
-                logger.warning(f"LLM 매칭 실패, 휴리스틱 폴백: {e}")
-
-        # 3단계: 휴리스틱 폴백
-        heuristic_results = heuristic_qualification_match(record, company)
-        # 해당 요건에 대한 휴리스틱 결과 찾기
-        for hr in heuristic_results:
-            if hr.requirement == req:
-                results.append(hr)
-                break
+            rule_results[req] = rule_result
         else:
-            results.append(QualificationMatch(
-                requirement=req,
-                status="확인불가",
-                evidence="자동 판단 불가",
-                kia_evidence="",
-            ))
+            needs_llm.append(req)
 
-    return results
+    # 2단계: LLM이 필요한 요건들 병렬 처리
+    llm_results = {}
+    if needs_llm and llm_client:
+        async def _safe_llm_match(req: str):
+            try:
+                return req, await _llm_match(req, company, llm_client)
+            except Exception as e:
+                logger.warning(f"LLM 매칭 실패({req}): {e}")
+                return req, None
+
+        # 동시 실행 (최대 5개 동시)
+        semaphore = asyncio.Semaphore(5)
+        
+        async def _bounded_match(req):
+            async with semaphore:
+                return await _safe_llm_match(req)
+        
+        tasks = [_bounded_match(req) for req in needs_llm]
+        results = await asyncio.gather(*tasks)
+        
+        for req, result in results:
+            if result is not None:
+                llm_results[req] = result
+            else:
+                # LLM 실패 시 휴리스틱으로 폴백
+                pass
+
+    # 3단계: 결과 합치기
+    final_results = []
+    heuristic_cache = None
+    
+    for req in record.qualifications:
+        if req in rule_results:
+            final_results.append(rule_results[req])
+        elif req in llm_results:
+            final_results.append(llm_results[req])
+        else:
+            # 휴리스틱 폴백 (캐싱)
+            if heuristic_cache is None:
+                heuristic_cache = heuristic_qualification_match(record, company)
+            matched = False
+            for hr in heuristic_cache:
+                if hr.requirement == req:
+                    final_results.append(hr)
+                    matched = True
+                    break
+            if not matched:
+                final_results.append(QualificationMatch(
+                    requirement=req,
+                    status="확인불가",
+                    evidence="자동 판단 불가",
+                    kia_evidence="",
+                ))
+
+    return final_results
 
 
 def _rule_based_match(req: str, company: CompanyProfile) -> QualificationMatch:
