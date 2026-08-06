@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     weight_risk_penalty: float = 0.10
 
     # 경로
-    corpus_dir: str = "/home/elicer/project/raw"
+    corpus_dir: str = "./raw"
     output_dir: str = "./reports"
 
     # 실행
