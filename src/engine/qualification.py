@@ -168,6 +168,7 @@ async def _llm_match(
     """LLM을 통한 자격요건 판단"""
     from src.llm.prompts import build_qualification_prompt
     from src.data.models import QualificationMatch
+    from src.config import get_settings
 
     prompt = build_qualification_prompt(requirement, company)
 
@@ -175,6 +176,6 @@ async def _llm_match(
         model="openai/gpt-5.6-luna",
         messages=[{"role": "user", "content": prompt}],
         response_format=QualificationMatch,
-        temperature=0.1,
+        temperature=get_settings().llm_temperature,
     )
     return response.choices[0].message.parsed

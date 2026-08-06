@@ -23,7 +23,8 @@ class Settings(BaseSettings):
         validation_alias="OPENAI_EMBEDDING_MODEL",
     )
     llm_timeout_seconds: float = 90.0
-    llm_temperature: float = 0.1
+    # NOTE: gpt-5.6-luna 모델은 temperature 기본값(1)만 지원
+    llm_temperature: float = 1.0
 
     # 비즈니스 규칙
     min_project_budget: int = 1_000_000_000  # 10억
