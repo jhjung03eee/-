@@ -67,8 +67,8 @@ dmypy.json
 # Data (large files)
 raw/bids/
 raw/bids_md/
-raw/bid_meta/*.json
-!raw/bid_meta/company_profile.json
+# raw/bid_meta/*.json  # 메타데이터 파일들 포함 (작음, 20개)
 
 # Artifacts
 <|names
+.env*
