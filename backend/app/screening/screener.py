@@ -15,7 +15,7 @@ from app.schemas import (
     ScreeningReport,
     ScreenOutcome,
 )
-from app.screening.dataset import BidRecord, load_company, load_corpus
+from app.screening.dataset import BidRecord, corpus_as_of, load_company, load_corpus
 from app.screening.filters import prefilter
 from app.supervisor import Supervisor
 
@@ -36,6 +36,21 @@ class BatchScreener:
         self._supervisor = Supervisor(self._settings)
         self._semaphore = asyncio.Semaphore(concurrency)
 
+    def resolve_as_of(self, records: list[BidRecord]) -> tuple[date, str]:
+        """Reference date for deadline checks, and where it came from.
+
+        Priority: explicit BIDCOM_AS_OF, then the corpus's own announcement
+        window, then the wall clock. The source is reported so the UI can say
+        which one is in effect rather than silently showing odd D-days.
+        """
+        pinned = self._settings.as_of_date
+        if pinned:
+            return pinned, "configured"
+        derived = corpus_as_of(records)
+        if derived:
+            return derived, "corpus"
+        return date.today(), "today"
+
     async def screen_corpus(self, root: Path, today: date | None = None) -> ScreeningReport:
         records = load_corpus(root)
         company = load_company(root) or load_company_profile()
@@ -49,8 +64,10 @@ class BatchScreener:
         today: date | None = None,
     ) -> ScreeningReport:
         started = time.perf_counter()
+        as_of, as_of_source = (today, "explicit") if today else self.resolve_as_of(records)
+
         items = await asyncio.gather(
-            *(self._screen_one(record, company, today) for record in records)
+            *(self._screen_one(record, company, as_of) for record in records)
         )
         items = sorted(items, key=_rank_key)
 
@@ -60,6 +77,8 @@ class BatchScreener:
 
         return ScreeningReport(
             generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            as_of=as_of.isoformat(),
+            as_of_source=as_of_source,
             corpus=corpus,
             company=company.name,
             total=len(items),
@@ -79,6 +98,7 @@ class BatchScreener:
             bid_id=record.bid_id,
             title=facts.title,
             agency=facts.agency,
+            category=record.category,
             budget_krw=facts.budget_krw,
             deadline=facts.deadline,
             region=facts.region,

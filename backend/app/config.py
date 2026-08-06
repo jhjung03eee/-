@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 
@@ -6,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 REPO_ROOT = BACKEND_ROOT.parent
-DATA_DIR = REPO_ROOT / "data"
+CORPUS_DIR = REPO_ROOT / "projects" / "raw"
 
 
 class Settings(BaseSettings):
@@ -39,17 +40,31 @@ class Settings(BaseSettings):
     corpus_dir: str = ""
     screening_concurrency: int = 4
 
+    # Screening reference date. Empty means "derive from the corpus" — see
+    # BatchScreener.resolve_as_of. Set BIDCOM_AS_OF=YYYY-MM-DD to pin it, or
+    # BIDCOM_AS_OF=today to always judge deadlines against the wall clock.
+    as_of: str = ""
+
     @property
     def live_llm(self) -> bool:
         return bool(self.openai_api_key)
 
     @property
     def corpus_path(self) -> Path:
-        """Real dataset when present, bundled demo corpus otherwise."""
-        if self.corpus_dir:
-            return Path(self.corpus_dir).expanduser()
-        real = REPO_ROOT / "projects" / "raw"
-        return real if real.is_dir() else DATA_DIR / "demo_corpus"
+        return Path(self.corpus_dir).expanduser() if self.corpus_dir else CORPUS_DIR
+
+    @property
+    def as_of_date(self) -> date | None:
+        """Explicit reference date, or None to let the corpus decide."""
+        value = self.as_of.strip()
+        if not value:
+            return None
+        if value.lower() == "today":
+            return date.today()
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except ValueError as exc:
+            raise ValueError(f"BIDCOM_AS_OF must be YYYY-MM-DD or 'today', got {value!r}") from exc
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -47,6 +47,20 @@ def prefilter(
             f"예산미달 ({_krw(facts.budget_krw)} < 최소 수주 기준 {_krw(company.min_project_budget_krw)})"
         )
 
+    # 주력 분야 여부는 판단의 영역이라 차단하지 않고 위원회로 넘긴다.
+    category = record.category
+    if category and company.preferred_categories and category not in company.preferred_categories:
+        outcome.warnings.append(
+            f"비주력 분야 ({category}, 주력: {', '.join(company.preferred_categories)})"
+        )
+
+    # 코퍼스가 이미 식별해 둔 리스크는 다시 추론하지 않고 그대로 승계한다.
+    for item in record.risky_items:
+        if str(item.get("severity", "")).lower() == "high":
+            label = item.get("risk") or item.get("item") or "고위험 항목"
+            detail = str(item.get("desc") or "").strip()
+            outcome.warnings.append(f"{label}{f' — {detail}' if detail else ''}")
+
     required_codes = normalize.pick_list(record.meta, "industry_code")
     if required_codes and company.industry_codes:
         if not set(required_codes) & set(company.industry_codes):

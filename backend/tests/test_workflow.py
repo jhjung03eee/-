@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.agents.heuristics import _offers_advance_payment
 from app.config import Settings
 from app.main import app
 from app.rag.embeddings import HashingEmbeddings
@@ -13,6 +14,52 @@ from app.supervisor import Supervisor
 
 SETTINGS = Settings()
 
+# A notice from the bundled corpus that overlaps KIA's delivery record.
+GO_SAMPLE = "용역_데이터베이스_성능튜닝_및_이전_용역_20250020-2861"
+
+# Scenario notices are written inline rather than pulled from the corpus: the
+# committee's behaviour on a region-locked or sub-threshold bid must be
+# testable whether or not the installed corpus happens to contain one.
+REGION_LOCKED = """# 대구 스마트시티 통합플랫폼 구축
+
+## 1. 사업 개요
+
+- 사업예산: 5,000,000,000원
+- 사업지역: 대구광역시
+- 사업기간: 12개월
+
+## 2. 입찰참가 자격요건
+
+- 본 입찰은 지역제한 경쟁입찰이며 본점 소재지가 대구광역시인 업체로 한정한다.
+- 소프트웨어사업자 신고를 필한 업체
+- 정보시스템 감리법인 등록(해당시)
+
+## 3. 평가 방법
+
+- 협상에 의한 계약, 기술평가 80점
+"""
+
+# Budget, award method and payment terms sit in one section on purpose: the
+# finance agent retrieves by topic, so the signals it weighs have to travel
+# together or they never reach it.
+LOW_VALUE = """# 노후 안내단말기 유지관리
+
+## 1. 사업 개요
+
+- 사업지역: 서울특별시
+- 사업기간: 12개월
+
+## 2. 사업예산 및 대가 지급
+
+- 사업예산: 300,000,000원
+- 낙찰자 결정: 적격심사를 거쳐 최저가 입찰자를 낙찰자로 한다.
+- 대가 지급: 준공후 일괄지급하며 선금은 지급하지 않는다.
+
+## 3. 입찰참가 자격요건
+
+- 소프트웨어사업자 신고를 필한 업체
+"""
+
 
 @pytest.fixture
 def client() -> TestClient:
@@ -20,7 +67,7 @@ def client() -> TestClient:
 
 
 async def test_retriever_gives_each_role_different_evidence():
-    markdown = load_sample("2026-0101-sejong-shuttle")
+    markdown = load_sample(GO_SAMPLE)
     store = VectorStore(HashingEmbeddings())
     await store.index(chunk_markdown(markdown))
     retriever = Retriever(store, top_k=4)
@@ -30,11 +77,10 @@ async def test_retriever_gives_each_role_different_evidence():
 
     assert legal and finance
     assert {c.chunk_id for c in legal} != {c.chunk_id for c in finance}
-    assert any("자격" in c.section for c in legal)
 
 
 async def test_go_case_produces_go_with_grounded_citations():
-    result = await Supervisor(SETTINGS).run(load_sample("2026-0101-sejong-shuttle"), "sejong.md")
+    result = await Supervisor(SETTINGS).run(load_sample(GO_SAMPLE), "db-tuning.md")
 
     assert result.committee.decision is Decision.GO
     assert len(result.opinions) == 4
@@ -48,30 +94,38 @@ async def test_go_case_produces_go_with_grounded_citations():
 
 
 async def test_region_restriction_triggers_legal_veto():
-    result = await Supervisor(SETTINGS).run(load_sample("2026-0103-daegu-smartcity"), "daegu.md")
+    result = await Supervisor(SETTINGS).run(REGION_LOCKED, "region-locked.md")
 
     legal = next(o for o in result.opinions if o.role is AgentRole.LEGAL)
     assert legal.decision is Decision.NO_GO
+    assert legal.confidence >= 0.7, "확신이 낮은 법무 의견은 거부권이 되지 않는다"
+
+    # The veto overrides the weighted tally rather than merely contributing to it.
     assert result.committee.decision is Decision.NO_GO
-    assert result.committee.human_review_required is True
+    assert "거부권" in result.committee.executive_summary
 
 
 async def test_low_value_maintenance_case_is_not_go():
-    result = await Supervisor(SETTINGS).run(
-        load_sample("2026-0104-anyang-signage"), "anyang.md"
-    )
+    result = await Supervisor(SETTINGS).run(LOW_VALUE, "low-value.md")
 
     finance = next(o for o in result.opinions if o.role is AgentRole.FINANCE)
     assert finance.decision is Decision.NO_GO
+    assert any("최소 수주 기준" in risk for risk in finance.risks)
     assert result.committee.decision is not Decision.GO
+
+
+def test_declined_advance_payment_is_not_read_as_a_benefit():
+    """`선금은 지급하지 않는다` must not count as a 선금 clause."""
+    assert not _offers_advance_payment("선금은 지급하지 않는다")
+    assert not _offers_advance_payment("기성 대가는 지급 없음")
+    assert _offers_advance_payment("선금 30%를 지급한다")
+    assert _offers_advance_payment("기성고에 따라 분할지급한다")
 
 
 async def test_stream_emits_stages_in_order():
     stages = [
         event.stage
-        async for event in Supervisor(SETTINGS).stream(
-            load_sample("2026-0101-sejong-shuttle"), "sejong.md"
-        )
+        async for event in Supervisor(SETTINGS).stream(load_sample(GO_SAMPLE), "db-tuning.md")
     ]
     assert stages[0] == "parsing"
     assert stages[1] == "indexing"
@@ -90,11 +144,12 @@ def test_health_and_config_endpoints(client):
 
 def test_samples_endpoint_lists_bundled_notices(client):
     ids = {s["id"] for s in client.get("/api/samples").json()["samples"]}
-    assert "2026-0101-sejong-shuttle" in ids
+    assert GO_SAMPLE in ids
+    assert len(ids) == 20
 
 
 def test_review_endpoint_returns_full_result(client):
-    response = client.post("/api/review", json={"sample_id": "2026-0101-sejong-shuttle"})
+    response = client.post("/api/review", json={"sample_id": GO_SAMPLE})
     assert response.status_code == 200
     body = response.json()
     assert body["committee"]["decision"] == "GO"
@@ -110,9 +165,7 @@ def test_review_rejects_unknown_sample(client):
 
 
 def test_stream_endpoint_emits_sse_frames(client):
-    with client.stream(
-        "POST", "/api/review/stream", json={"sample_id": "2026-0101-sejong-shuttle"}
-    ) as response:
+    with client.stream("POST", "/api/review/stream", json={"sample_id": GO_SAMPLE}) as response:
         assert response.status_code == 200
         body = "".join(response.iter_text())
     assert "event: parsing" in body

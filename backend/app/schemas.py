@@ -142,6 +142,18 @@ class CompanyProfile(BaseModel):
     current_active_projects: int = 0
     min_preparation_days: int = 7
 
+    business_type: str | None = None
+    capital_krw: int = 0
+    # Delivery capacity is bounded by engineers, not headcount: a 38,000-person
+    # manufacturer with 450 technical staff can only staff so many bids at once.
+    technical_headcount: int = 0
+    preferred_categories: list[str] = Field(default_factory=list)
+
+    @property
+    def delivery_headcount(self) -> int:
+        """Staff actually available to deliver a bid."""
+        return self.technical_headcount or self.headcount
+
 
 class Recommendation(str, Enum):
     STRONG = "적극추천"
@@ -163,6 +175,7 @@ class ScreeningItem(BaseModel):
     bid_id: str
     title: str
     agency: str | None = None
+    category: str | None = None
     budget_krw: int | None = None
     deadline: str | None = None
     region: str | None = None
@@ -182,6 +195,10 @@ class ScreeningReport(BaseModel):
     generated_at: str
     corpus: str
     company: str
+    # Date the deadlines were judged against. Differs from generated_at when the
+    # corpus is an archive being screened as of its own announcement window.
+    as_of: str
+    as_of_source: str = "today"
     total: int
     screened_by_committee: int
     filtered_out: int

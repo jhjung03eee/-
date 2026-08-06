@@ -34,6 +34,28 @@ const tierStyle = (tier) => TIER[tier] || TIER["검토"];
 const TIER_ORDER = { 적극추천: 0, 검토: 1, 패스: 2 };
 const ACTION_STATES = ["검토 전", "담당자 배정", "보류", "제외"];
 
+const AS_OF_SOURCE_HINT = {
+  corpus: "코퍼스의 마지막 공고일 기준",
+  configured: "BIDCOM_AS_OF 설정값",
+  today: "실행 시점",
+  explicit: "호출 시 지정된 날짜",
+};
+
+/** D-day는 오늘이 아니라 이 기준일로부터 센 값이라, 화면에 함께 보여준다. */
+function AsOfNote({ report }) {
+  if (!report.as_of) return null;
+  const hint = AS_OF_SOURCE_HINT[report.as_of_source] || report.as_of_source;
+  return (
+    <span
+      className="rounded border border-slate-700 bg-slate-900/70 px-2 py-0.5 font-mono text-xs text-slate-400"
+      title={`마감일 판정 기준일 — ${hint}`}
+    >
+      기준일 {report.as_of}
+      <span className="ml-1.5 text-slate-600">{hint}</span>
+    </span>
+  );
+}
+
 function deadlineLabel(item) {
   if (item.days_left === null) return "마감 미확인";
   return `D${item.days_left >= 0 ? "-" : "+"}${Math.abs(item.days_left)}`;
@@ -298,7 +320,10 @@ function ListItem({ item, selected, status, onSelect, onStatusChange }) {
             <p className="truncate text-sm font-medium text-slate-100">{item.title}</p>
             {item.human_review_required && <span className="shrink-0 text-xs" title="담당자 검토 필요">⚠️</span>}
           </div>
-          <p className="mt-0.5 truncate text-xs text-slate-500">{item.bid_id} · {item.agency || "발주처 미확인"}</p>
+          <p className="mt-0.5 truncate text-xs text-slate-500">
+            {item.category && <span className="mr-1.5 rounded bg-slate-800 px-1.5 py-0.5 text-slate-400">{item.category}</span>}
+            {item.agency || "발주처 미확인"}
+          </p>
         </div>
         <div className="hidden w-20 shrink-0 text-right sm:block">
           <p className={`font-mono text-sm font-bold ${style.text}`}>{score10(item.score)}</p>
@@ -322,7 +347,10 @@ function DetailPanel({ item, status, onStatusChange }) {
           <div className="min-w-0">
             <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${style.bg} ${style.text}`}>{style.icon} {item.recommendation}</span>
             <h3 className="mt-2 text-base font-semibold leading-snug text-slate-50">{item.title}</h3>
-            <p className="mt-1 text-xs text-slate-500">{item.bid_id} · {item.agency || "발주처 미확인"}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {item.category && <span className="mr-1.5 rounded bg-slate-800 px-1.5 py-0.5 text-slate-400">{item.category}</span>}
+              {item.bid_id} · {item.agency || "발주처 미확인"}
+            </p>
           </div>
           <span className={`font-mono text-lg font-bold ${style.text}`}>{score10(item.score)}</span>
         </div>
@@ -417,7 +445,7 @@ export default function ScreeningView({ corpus, report, busy, onRun }) {
 
       {report && (
         <div className="space-y-4">
-          <Panel title="스크리닝 개요" subtitle={`${report.company} · ${report.generated_at}`} actions={<button onClick={() => window.print()} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-500 print:hidden">📄 PDF 다운로드</button>}>
+          <Panel title="스크리닝 개요" subtitle={`${report.company} · ${report.generated_at}`} actions={<div className="flex items-center gap-2"><AsOfNote report={report} /><button onClick={() => window.print()} className="flex items-center gap-2 rounded-md bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-500 print:hidden">📄 PDF 다운로드</button></div>}>
             <Summary report={report} />
           </Panel>
 

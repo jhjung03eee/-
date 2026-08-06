@@ -14,11 +14,22 @@ ALIASES: dict[str, tuple[str, ...]] = {
     "bid_id": ("공고번호", "bid_no", "bid_id", "notice_no", "announcement_id", "id"),
     "title": ("사업명", "공고명", "title", "name", "용역명", "과업명"),
     "agency": ("발주처", "발주기관", "수요기관", "agency", "organization", "org"),
-    "deadline": ("마감일", "마감일시", "deadline", "due_date", "closing_date", "제출마감"),
+    # `bid_date` is 나라장터's 입찰마감일. It is the submission cut-off, so it
+    # ranks above open_date (개찰) — bidding closes before the box is opened.
+    "deadline": (
+        "마감일", "마감일시", "deadline", "due_date", "closing_date", "제출마감",
+        "입찰마감", "bid_date",
+    ),
+    "announced": ("공고일자", "공고일", "announce_date", "announcement_date", "게시일"),
     "budget": ("예산", "사업예산", "budget", "estimated_price", "추정가격", "배정예산"),
     "region": ("지역", "사업지역", "region", "이행지역", "location"),
     "industry_code": ("업종코드", "industry_code", "업종", "license_code", "업종분류"),
     "duration": ("수행기간", "사업기간", "duration", "계약기간"),
+    "duration_months": ("duration_months", "사업기간개월", "계약개월"),
+    "category": ("사업분류", "category", "분류", "business_type", "공고종류"),
+    "qualifications": ("qualifications", "자격요건", "입찰참가자격", "참가자격"),
+    "eval_criteria": ("eval_criteria", "평가기준", "배점", "평가항목"),
+    "risky_items": ("risky_items", "리스크", "위험요소", "특이사항"),
 }
 
 _DATE_FORMATS = (
@@ -64,6 +75,29 @@ def pick_budget(meta: dict) -> int | None:
     if isinstance(value, (int, float)):
         return int(value)
     return parse_krw(str(value))
+
+
+def pick_duration(meta: dict) -> str | None:
+    """A human-readable 사업기간, from either a text field or a month count."""
+    text = pick_str(meta, "duration")
+    if text:
+        return text
+    months = pick(meta, "duration_months")
+    if isinstance(months, (int, float)) and months > 0:
+        return f"{int(months)}개월"
+    return None
+
+
+def pick_dict(meta: dict, field: str) -> dict:
+    value = pick(meta, field)
+    return value if isinstance(value, dict) else {}
+
+
+def pick_dicts(meta: dict, field: str) -> list[dict]:
+    value = pick(meta, field)
+    if not isinstance(value, (list, tuple)):
+        return []
+    return [item for item in value if isinstance(item, dict)]
 
 
 def parse_deadline(value: object) -> date | None:

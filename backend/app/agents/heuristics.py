@@ -4,6 +4,8 @@ Runs as the offline provider and as the fallback when a live OpenAI call fails, 
 committee always produces an auditable result instead of an empty one.
 """
 
+import re
+
 from app.schemas import BidFacts, CompanyProfile, Decision, RetrievedChunk
 
 CERT_NOUNS = ("인증", "면허", "등록", "신고", "자격", "확인", "평가등급")
@@ -17,6 +19,8 @@ RISK_CLAUSES = {
 }
 PAYMENT_GOOD = ("선금", "기성", "분할지급", "기성고")
 PAYMENT_BAD = ("준공후", "일괄지급", "검수후 일괄")
+# 공고문은 유리한 조건을 부정형으로 적는 일이 잦다: "선금은 지급하지 않는다".
+PAYMENT_NEGATION = re.compile(r"지급하지\s*않|미지급|지급\s*없|지급\s*불가|지급하지\s*아니")
 LOW_PRICE_SIGNALS = ("최저가", "낙찰하한", "적격심사")
 QUALITY_SIGNALS = ("협상에 의한 계약", "기술평가", "제안서 평가", "종합평가")
 
@@ -31,6 +35,21 @@ def _coverage(needles: list[str], haystack: str) -> tuple[float, list[str], list
     matched = [n for n in needles if n.lower() in haystack]
     missing = [n for n in needles if n not in matched]
     return len(matched) / len(needles), matched, missing
+
+
+# 관련 역량이 3개 확인되면 적합성은 만점으로 본다.
+_FIT_SATURATION = 3
+
+
+def _fit(matched: list[str]) -> float:
+    """Capability fit from how many relevant items matched.
+
+    Deliberately not `matched / portfolio_size`: a company that lists 22
+    capabilities and matches 3 of them fits the notice at least as well as one
+    that lists 4 and matches 1. Scoring by share would punish the broader firm
+    for having a portfolio, which is exactly backwards.
+    """
+    return min(1.0, len(matched) / _FIT_SATURATION)
 
 
 def _citations(retrieved: list[RetrievedChunk], limit: int = 3) -> list[dict]:
@@ -62,8 +81,6 @@ def _decide(scores: dict[str, float], evidence_count: int) -> tuple[str, float]:
 def _months(duration: str | None) -> float | None:
     if not duration:
         return None
-    import re
-
     month = re.search(r"(\d+)\s*(?:개월|달)", duration)
     if month:
         return float(month.group(1))
@@ -83,7 +100,8 @@ def sales_opinion(
     strengths: list[str] = []
     risks: list[str] = []
 
-    domain_ratio, matched_tech, _ = _coverage(company.tech_stack, corpus)
+    _, matched_tech, _ = _coverage(company.tech_stack, corpus)
+    domain_fit = _fit(matched_tech)
     if matched_tech:
         strengths.append(f"보유 역량과 겹치는 영역: {', '.join(matched_tech[:4])}")
     else:
@@ -115,9 +133,9 @@ def sales_opinion(
     if facts.agency:
         strengths.append(f"발주기관: {facts.agency}")
 
-    strategic = 0.5 + 0.5 * domain_ratio
+    strategic = 0.5 + 0.5 * domain_fit
     scores = {
-        "사업 적합성": round(0.3 + 0.7 * domain_ratio, 2),
+        "사업 적합성": round(0.3 + 0.7 * domain_fit, 2),
         "시장성": round(budget_score, 2),
         "고객 적합성": round(customer_score, 2),
         "전략적 가치": round(strategic, 2),
@@ -127,8 +145,8 @@ def sales_opinion(
         "decision": decision,
         "confidence": confidence,
         "summary": (
-            f"보유 기술 영역 일치도 {domain_ratio:.0%}, 예산 규모 {_krw(facts.budget_krw)} 기준으로 "
-            f"사업 가치를 평가했다."
+            f"보유 역량 {len(matched_tech)}건이 공고와 일치하고, 예산 규모 "
+            f"{_krw(facts.budget_krw)} 기준으로 사업 가치를 평가했다."
         ),
         "strengths": strengths,
         "risks": risks,
@@ -144,7 +162,8 @@ def technical_opinion(
     strengths: list[str] = []
     risks: list[str] = []
 
-    coverage, matched, _ = _coverage(company.tech_stack, corpus)
+    _, matched, _ = _coverage(company.tech_stack, corpus)
+    coverage = _fit(matched)
     if matched:
         strengths.append(f"요구 기술 중 보유 스택 일치: {', '.join(matched[:5])}")
     else:
@@ -167,7 +186,7 @@ def technical_opinion(
         required_person_months = budget / 12_000_000 if budget else 0
         if required_person_months and months:
             team_size = required_person_months / months
-            if team_size > company.headcount * 0.5:
+            if team_size > company.delivery_headcount * 0.5:
                 duration_score = 0.35
                 risks.append(
                     f"기간 대비 필요 투입 인력 약 {team_size:.1f}명으로 조직 규모 대비 과중"
@@ -190,7 +209,7 @@ def technical_opinion(
         "decision": decision,
         "confidence": confidence,
         "summary": (
-            f"요구 기술 대비 보유 스택 커버리지 {coverage:.0%}, 사업기간 "
+            f"요구 기술과 겹치는 보유 스택 {len(matched)}건, 사업기간 "
             f"{facts.duration or '미확인'} 조건에서 수행 가능성을 평가했다."
         ),
         "strengths": strengths,
@@ -207,6 +226,14 @@ def finance_opinion(
     strengths: list[str] = []
     risks: list[str] = []
 
+    # 매출이 없으면 자본금을 재무 기준선으로 쓴다. 둘 다 없으면 비율 자체를
+    # 계산하지 않는다 — 0으로 나눠 만든 수치는 항상 만점이 되어 무의미하다.
+    base_krw, base_label = (
+        (company.annual_revenue_krw, "연매출")
+        if company.annual_revenue_krw
+        else (company.capital_krw, "자본금")
+    )
+
     budget = facts.budget_krw or 0
     if not budget:
         size_score = 0.35
@@ -217,7 +244,7 @@ def finance_opinion(
             f"예산 {_krw(budget)}이 최소 수주 기준 {_krw(company.min_project_budget_krw)} 미만"
         )
     else:
-        size_score = min(1.0, 0.6 + budget / max(company.annual_revenue_krw, 1))
+        size_score = min(1.0, 0.6 + (budget / base_krw if base_krw else 0.2))
         strengths.append(f"예산 규모 {_krw(budget)}로 최소 수주 기준 충족")
 
     price_competition = any(signal in corpus for signal in LOW_PRICE_SIGNALS)
@@ -233,17 +260,22 @@ def finance_opinion(
 
     profitability = min(1.0, margin / max(company.target_margin, 0.01))
 
-    revenue_share = budget / max(company.annual_revenue_krw, 1) if budget else 0
-    roi_score = min(1.0, 0.35 + revenue_share * 2)
-    if revenue_share:
-        strengths.append(f"연매출 대비 비중 {revenue_share:.1%}")
+    if budget and base_krw:
+        share = budget / base_krw
+        roi_score = min(1.0, 0.35 + share * 2)
+        strengths.append(f"{base_label} 대비 비중 {share:.1%}")
+    else:
+        roi_score = 0.5
+        risks.append("회사 재무 기준선이 없어 사업 비중을 산출하지 못함")
 
-    if any(signal in corpus for signal in PAYMENT_GOOD):
-        payment_score = 0.9
-        strengths.append("선금/기성 지급 조건으로 현금흐름 부담 완화")
-    elif any(signal in corpus for signal in PAYMENT_BAD):
+    # 불리한 조건을 먼저 본다. "선금 없이 준공후 일괄지급"처럼 두 신호가 같이
+    # 등장할 때 유리한 쪽만 집어 좋게 읽는 것을 막는다.
+    if any(signal in corpus for signal in PAYMENT_BAD):
         payment_score = 0.35
         risks.append("준공 후 일괄 지급 조건으로 현금흐름 부담")
+    elif _offers_advance_payment(corpus):
+        payment_score = 0.9
+        strengths.append("선금/기성 지급 조건으로 현금흐름 부담 완화")
     else:
         payment_score = 0.55
         risks.append("대금 지급 조건이 발췌문에서 확인되지 않음")
@@ -337,6 +369,19 @@ def legal_opinion(
         "criteria_scores": scores,
         "citations": _citations(retrieved),
     }
+
+
+def _offers_advance_payment(corpus: str) -> bool:
+    """True only for an unnegated 선금/기성 clause.
+
+    Substring matching alone reads "선금은 지급하지 않는다" as a favourable term,
+    so each hit is checked against the clause that follows it.
+    """
+    for token in PAYMENT_GOOD:
+        for match in re.finditer(re.escape(token), corpus):
+            if not PAYMENT_NEGATION.search(corpus[match.end() : match.end() + 20]):
+                return True
+    return False
 
 
 def _requirement_lines(retrieved: list[RetrievedChunk]) -> list[str]:

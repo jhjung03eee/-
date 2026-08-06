@@ -2,7 +2,9 @@
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 from app.rag.parser import extract_facts, to_markdown
@@ -34,7 +36,7 @@ class BidRecord:
             "agency": normalize.pick_str(self.meta, "agency"),
             "deadline": normalize.pick_str(self.meta, "deadline"),
             "region": normalize.pick_str(self.meta, "region"),
-            "duration": normalize.pick_str(self.meta, "duration"),
+            "duration": normalize.pick_duration(self.meta),
         }
         for key, value in overrides.items():
             if value:
@@ -43,7 +45,28 @@ class BidRecord:
         budget = normalize.pick_budget(self.meta)
         if budget:
             facts.budget_krw = budget
+
+        qualifications = normalize.pick_list(self.meta, "qualifications")
+        if qualifications:
+            facts.qualifications = qualifications
+
+        # 배점표는 {"기술능력": 50, ...} 형태라 본문 불릿 파싱으로는 잡히지 않는다.
+        criteria = normalize.pick_dict(self.meta, "eval_criteria")
+        if criteria:
+            facts.evaluation_criteria = [f"{name} {score}점" for name, score in criteria.items()]
         return facts
+
+    @property
+    def category(self) -> str | None:
+        return normalize.pick_str(self.meta, "category")
+
+    @property
+    def risky_items(self) -> list[dict]:
+        return normalize.pick_dicts(self.meta, "risky_items")
+
+    @property
+    def announced_on(self) -> date | None:
+        return normalize.parse_deadline(normalize.pick(self.meta, "announced"))
 
 
 def load_corpus(root: Path) -> list[BidRecord]:
@@ -61,6 +84,18 @@ def load_corpus(root: Path) -> list[BidRecord]:
         logger.warning("documents without metadata: %s", unmatched)
     logger.info("loaded %d bids, %d with metadata", len(records), len(matched))
     return records
+
+
+def corpus_as_of(records: list[BidRecord]) -> date | None:
+    """The last day every notice in the corpus is simultaneously open.
+
+    Archived corpora carry announcement dates in the past, so judging their
+    deadlines against the wall clock rejects all of them as expired. Screening
+    as of the newest announcement reproduces the moment a bid desk would
+    actually have looked at this batch: everything published, nothing closed.
+    """
+    announced = [record.announced_on for record in records]
+    return max((day for day in announced if day), default=None)
 
 
 def load_company(root: Path) -> CompanyProfile | None:
@@ -142,17 +177,110 @@ def _to_company(payload: dict) -> CompanyProfile:
     if "annual_revenue_krw" in payload and "name" in payload:
         return CompanyProfile(**{k: v for k, v in payload.items() if k in CompanyProfile.model_fields})
 
-    revenue = normalize.pick(payload, "budget") or payload.get("annual_revenue") or 0
+    business_type = _first_str(payload, "business_type", "업종", "사업분야")
+    staff = payload.get("technical_staff") if isinstance(payload.get("technical_staff"), dict) else {}
+
     return CompanyProfile(
-        name=str(payload.get("name") or payload.get("회사명") or payload.get("company") or "당사"),
-        headcount=int(payload.get("headcount") or payload.get("인력") or payload.get("임직원수") or 0),
-        annual_revenue_krw=int(revenue) if str(revenue).isdigit() else 0,
+        name=_first_str(payload, "name", "company_name", "회사명", "company") or "당사",
+        headcount=_first_int(payload, "headcount", "employees", "인력", "임직원수"),
+        annual_revenue_krw=_first_int(payload, "annual_revenue_krw", "annual_revenue", "매출액"),
+        capital_krw=_first_int(payload, "capital_krw", "capital", "자본금"),
+        technical_headcount=_first_int(staff, "count", "technical_staff_count"),
+        business_type=business_type,
         regions=normalize.pick_list(payload, "region") or _listify(payload.get("regions")),
-        certifications=_listify(payload.get("certifications") or payload.get("자격") or payload.get("인증")),
+        # 면허·인증은 이름만 뽑아 자격요건 문자열 매칭에 쓴다.
+        certifications=_names(
+            payload.get("licenses") or payload.get("certifications") or payload.get("인증"), "name"
+        ),
         industry_codes=normalize.pick_list(payload, "industry_code"),
-        tech_stack=_listify(payload.get("tech_stack") or payload.get("역량") or payload.get("기술")),
-        past_projects=_listify(payload.get("past_projects") or payload.get("실적")),
+        tech_stack=_tech_stack(payload, business_type),
+        past_projects=_names(
+            payload.get("track_records") or payload.get("past_projects") or payload.get("실적"),
+            "project_name",
+        ),
+        preferred_categories=_listify(payload.get("preferred_categories")),
+        min_project_budget_krw=_first_int(
+            payload, "min_project_budget_krw", "min_project_amount", "최소수주금액"
+        ),
     )
+
+
+# Anonymised client prefixes ("OO시", "OO광역시") and words that appear in
+# almost every public project name, so they carry no capability signal.
+_ORG_PREFIX = re.compile(r"^(?:OO|○○|◯◯|\*\*)[가-힣]*")
+_GENERIC_TOKENS = frozenset(
+    {
+        "구축", "고도화", "용역", "사업", "시범사업", "개발", "공사", "조성공사",
+        "운영", "기술", "이전", "노후", "도입", "지원", "관리", "서비스", "시스템",
+    }
+)
+
+
+def _tech_stack(payload: dict, business_type: str | None) -> list[str]:
+    """Capability keywords to match against a notice's text.
+
+    The 나라장터 profile has no explicit tech stack, so it is derived from what
+    the company has actually delivered. Past project names are the best source:
+    they are written in the same vocabulary as the notices being screened
+    ("지능형 CCTV 관제", "빅데이터 분석플랫폼"). Whole names are useless for
+    substring matching, so they are reduced to their distinguishing tokens.
+    """
+    explicit = _listify(payload.get("tech_stack") or payload.get("역량") or payload.get("기술"))
+    if explicit:
+        return explicit
+
+    keywords = [part.strip() for part in re.split(r"[·,/|]", business_type or "") if part.strip()]
+    for name in _names(payload.get("track_records"), "project_name"):
+        for token in name.split():
+            token = _ORG_PREFIX.sub("", token).strip()
+            if len(token) >= 3 and token not in _GENERIC_TOKENS:
+                keywords.append(token)
+    return _dedupe(keywords)
+
+
+def _names(value: object, key: str) -> list[str]:
+    """Flatten a list that may hold plain strings or objects with a name field."""
+    if not isinstance(value, (list, tuple)):
+        return _listify(value)
+    names: list[str] = []
+    for item in value:
+        if isinstance(item, dict):
+            name = item.get(key) or item.get("name") or item.get("title")
+            if name:
+                names.append(str(name).strip())
+        elif str(item).strip():
+            names.append(str(item).strip())
+    return _dedupe(names)
+
+
+def _first_str(payload: dict, *keys: str) -> str | None:
+    for key in keys:
+        value = payload.get(key)
+        if value not in (None, "", [], {}):
+            return str(value).strip()
+    return None
+
+
+def _first_int(payload: dict, *keys: str) -> int:
+    """Ints arrive as numbers or as digit strings like "500,000,000,000"."""
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            digits = re.sub(r"[^\d]", "", value)
+            if digits:
+                return int(digits)
+    return 0
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    seen: dict[str, None] = {}
+    for value in values:
+        seen.setdefault(value, None)
+    return list(seen)
 
 
 def _listify(value: object) -> list[str]:
