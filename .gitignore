@@ -66,7 +66,7 @@ dmypy.json
 
 # Data (large files)
 raw/bids/
-raw/bids_md/
+# raw/bids_md/  # 마크다운 파일들 (작음, Vercel 배포용으로 포함 필요)
 # raw/bid_meta/*.json  # 메타데이터 파일들 포함 (작음, 20개)
 
 # Artifacts
