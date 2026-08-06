@@ -6,6 +6,7 @@ This serves both the API endpoints and the frontend static files.
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -40,8 +41,16 @@ app = FastAPI(
 # Settings
 settings = get_settings()
 
-# Ensure output directory exists
-settings.output_path.mkdir(parents=True, exist_ok=True)
+# Vercel uses read-only filesystem - use /tmp for output
+def get_output_path() -> Path:
+    """Get writable output path (uses /tmp on Vercel)"""
+    if os.environ.get("VERCEL"):
+        return Path("/tmp") / "reports"
+    return settings.output_path
+
+# Ensure output directory exists (only locally)
+if not os.environ.get("VERCEL"):
+    settings.output_path.mkdir(parents=True, exist_ok=True)
 
 
 # Request/Response Models
@@ -209,12 +218,25 @@ async def screen_bids(request: ScreenRequest):
 
     generator = ReportGenerator()
     formats = [f.strip() for f in request.format.split(",")]
-    output_path = settings.output_path / f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    
+    # Use temp directory for Vercel
+    output_dir = get_output_path()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     generated = generator.generate(report, output_path, formats)
 
-    # 첫 번째 생성된 파일 URL 반환 (HTML 우선)
-    html_file = next((f for f in generated if f.endswith(".html")), generated[0])
-    report_url = f"/reports/{Path(html_file).name}"
+    # Read generated HTML content to return directly (Vercel can't serve static files)
+    html_content = None
+    for f in generated:
+        if f.endswith(".html"):
+            html_content = Path(f).read_text(encoding="utf-8")
+            break
+    
+    report_url = None
+    if html_content:
+        # On Vercel, return base64 encoded HTML or just the content
+        import base64
+        report_url = f"data:text/html;base64,{base64.b64encode(html_content.encode()).decode()}"
 
     return ScreenResponse(
         success=True,
@@ -228,15 +250,9 @@ async def screen_bids(request: ScreenRequest):
     )
 
 
-# Static file serving for reports
-reports_dir = settings.output_path
-if reports_dir.exists():
-    app.mount("/reports", StaticFiles(directory=str(reports_dir)), name="reports")
-
-
 # Catch-all for SPA (if frontend exists)
 frontend_dist = Path(__file__).parent / "frontend" / "dist"
-if frontend_dist.exists():
+if frontend_dist.exists() and not os.environ.get("VERCEL"):
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 
 
