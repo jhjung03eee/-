@@ -258,6 +258,10 @@ async def serve_frontend():
     """프론트엔드 HTML 서빙"""
     if FRONTEND_HTML.exists():
         return FRONTEND_HTML.read_text(encoding="utf-8")
+    # Fallback: try project root
+    fallback = Path(__file__).parent.parent / "frontend" / "index.html"
+    if fallback.exists():
+        return fallback.read_text(encoding="utf-8")
     return HTMLResponse(
         content="<h1>Frontend not found</h1><p>Please deploy with frontend/index.html</p>",
         status_code=404

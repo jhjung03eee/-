@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIA 공공입찰 스크리너</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header { background: #1a3c6e; color: white; padding: 24px; border-radius: 12px; margin-bottom: 24px; }
+        h1 { font-size: 28px; font-weight: 600; }
+        .subtitle { color: #a8c4e8; margin-top: 8px; }
+        .controls { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #1a3c6e; color: white; }
+        .btn-primary:hover { background: #153058; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .input-group { display: flex; gap: 8px; align-items: center; }
+        .input-group label { font-size: 13px; color: #666; white-space: nowrap; }
+        .input-group input, .input-group select { padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .stat-value { font-size: 32px; font-weight: 700; }
+        .stat-label { font-size: 13px; color: #666; margin-top: 4px; }
+        .stat-recommend { color: #10b981; }
+        .stat-review { color: #f59e0b; }
+        .stat-pass { color: #9ca3af; }
+        .stat-filtered { color: #ef4444; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8fafc; font-weight: 600; font-size: 13px; color: #374151; white-space: nowrap; }
+        td { font-size: 14px; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f9fafb; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-strong { background: #d1fae5; color: #065f46; }
+        .badge-review { background: #fef3c7; color: #92400e; }
+        .badge-pass { background: #f3f4f6; color: #4b5563; }
+        .badge-urgent { background: #fee2e2; color: #991b1b; font-size: 11px; margin-left: 8px; }
+        .budget { font-family: monospace; color: #1a3c6e; font-weight: 500; }
+        .details-btn { background: none; border: none; color: #1a3c6e; cursor: pointer; font-size: 13px; text-decoration: underline; }
+        .details-row { display: none; background: #f8fafc; }
+        .details-row.open { display: table-row; }
+        .details-content { padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+        .detail-item { background: white; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+        .detail-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .detail-value { font-size: 13px; }
+        .risk-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin: 2px; background: #fee2e2; color: #991b1b; }
+        .risk-tag.medium { background: #fef3c7; color: #92400e; }
+        .risk-tag.low { background: #d1fae5; color: #065f46; }
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #e5e7eb; border-top-color: #1a3c6e; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 12px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+        .qual-list { font-size: 12px; line-height: 1.8; }
+        .qual-item { padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+        .qual-status { display: inline-block; width: 80px; font-weight: 600; }
+        .status-충족 { color: #10b981; }
+        .status-부분충족 { color: #f59e0b; }
+        .status-미충족 { color: #ef4444; }
+        .status-확인불가 { color: #9ca3af; }
+        .score-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+        .score-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>KIA 공공입찰 스크리너</h1>
+            <p class="subtitle">매일 새벽 20건 입찰공고 → 자격/마감/예산 자동 필터 → 추천 스코어링 → 한 페이지 리포트</p>
+        </header>
+
+        <div class="controls">
+            <div class="input-group">
+                <label>기준일</label>
+                <input type="date" id="dateInput" value="2025-08-05">
+            </div>
+            <div class="input-group">
+                <label>카테고리</label>
+                <select id="categoryInput">
+                    <option value="">전체</option>
+                    <option value="정보화사업">정보화사업</option>
+                    <option value="연구개발사업">연구개발사업</option>
+                    <option value="시설공사">시설공사</option>
+                    <option value="용역">용역</option>
+                    <option value="물품구매">물품구매</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="screenBtn" onclick="runScreening()">
+                <span id="btnText">스크리닝 실행</span>
+                <span class="spinner" id="spinner" style="display:none;"></span>
+            </button>
+        </div>
+
+        <div id="errorBox" style="display:none;"></div>
+
+        <div class="stats" id="statsBox" style="display:none;">
+            <div class="stat-card">
+                <div class="stat-value stat-recommend" id="statStrong">-</div>
+                <div class="stat-label">적극추천</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-review" id="statReview">-</div>
+                <div class="stat-label">검토</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-pass" id="statPass">-</div>
+                <div class="stat-label">패스</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-filtered" id="statFiltered">-</div>
+                <div class="stat-label">사전필터 제외</div>
+            </div>
+        </div>
+
+        <table id="resultTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>공고번호</th>
+                    <th>사업명</th>
+                    <th>발주처</th>
+                    <th>예산</th>
+                    <th>마감</th>
+                    <th>자격판정</th>
+                    <th>리스크</th>
+                    <th>추천등급</th>
+                    <th>핵심사유</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+
+        <div class="loading" id="loadingBox" style="display:none;">
+            <span class="spinner"></span> AI가 20건을 분석 중입니다... (약 10-20초 소요)
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function runScreening() {
+            const btn = document.getElementById('screenBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            const loadingBox = document.getElementById('loadingBox');
+            const errorBox = document.getElementById('errorBox');
+            const table = document.getElementById('resultTable');
+            const statsBox = document.getElementById('statsBox');
+
+            btn.disabled = true;
+            btnText.textContent = '분석 중...';
+            spinner.style.display = 'inline-block';
+            loadingBox.style.display = 'block';
+            errorBox.style.display = 'none';
+            table.style.display = 'none';
+            statsBox.style.display = 'none';
+
+            try {
+                const date = document.getElementById('dateInput').value;
+                const category = document.getElementById('categoryInput').value;
+
+                const res = await fetch(`${API_BASE}/screen`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date, category: category || undefined, format: 'html,md' })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+
+                const data = await res.json();
+                renderResults(data);
+            } catch (err) {
+                errorBox.style.display = 'block';
+                errorBox.innerHTML = `❌ 오류: ${err.message}`;
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = '스크리닝 실행';
+                spinner.style.display = 'none';
+                loadingBox.style.display = 'none';
+            }
+        }
+
+        function renderResults(data) {
+            const statsBox = document.getElementById('statsBox');
+            const table = document.getElementById('resultTable');
+            const tbody = document.getElementById('tableBody');
+
+            document.getElementById('statStrong').textContent = data.stats.counts['적극추천'] || 0;
+            document.getElementById('statReview').textContent = data.stats.counts['검토'] || 0;
+            document.getElementById('statPass').textContent = data.stats.counts['패스'] || 0;
+            document.getElementById('statFiltered').textContent = data.stats.filtered_out || 0;
+
+            tbody.innerHTML = '';
+
+            // data.screening_items가 없을 수 있음 (report_url만 있는 경우)
+            // report_url이 base64 HTML이면 디코딩해서 파싱하거나, stats만 표시
+            if (data.report_url && data.report_url.startsWith('data:text/html;base64,')) {
+                // HTML 리포트를 iframe으로 표시하는 방식 추가
+                const html = atob(data.report_url.replace('data:text/html;base64,', ''));
+                showReportModal(html);
+            }
+
+            statsBox.style.display = 'grid';
+            table.style.display = 'table';
+        }
+
+        function showReportModal(html) {
+            // 새 창에 리포트 열기
+            const w = window.open('', '_blank', 'width=1200,height=800');
+            w.document.write(html);
+            w.document.close();
+        }
+
+        // 초기 실행
+        document.addEventListener('DOMContentLoaded', () => {
+            runScreening();
+        });
+    </script>
+</body>
+</html>
